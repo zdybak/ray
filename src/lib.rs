@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add,Sub};
 
 #[derive(Debug)]
 pub struct RayTuple {
@@ -59,6 +59,19 @@ impl Add for RayTuple {
     }
 }
 
+impl Sub for RayTuple {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self { 
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -113,4 +126,11 @@ mod tests {
         assert_eq!( a1 + a2, RayTuple::point(1.0, 1.0, 6.0));
     }
 
+    //Pg.7 Scenario: Subtract two points
+    #[test]
+    fn subtract_two_points() {
+        let p1 = RayTuple::point(3.0, 2.0, 1.0);
+        let p2 = RayTuple::point(5.0, 6.0, 7.0);
+        assert_eq!( p1 - p2, RayTuple::point(-2.0, -4.0, -6.0));
+    }
 }
