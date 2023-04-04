@@ -131,6 +131,9 @@ mod tests {
     fn subtract_two_points() {
         let p1 = RayTuple::point(3.0, 2.0, 1.0);
         let p2 = RayTuple::point(5.0, 6.0, 7.0);
-        assert_eq!( p1 - p2, RayTuple::point(-2.0, -4.0, -6.0));
+        let ps = p1 - p2;
+        assert_eq!( ps, RayTuple::vector(-2.0, -4.0, -6.0));
+        assert!(ps.is_a_vector());
+
     }
 }
