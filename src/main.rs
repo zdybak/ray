@@ -2,5 +2,4 @@
 
 fn main() {
     println!("Ray Tracer Challenge");
-   
 }
