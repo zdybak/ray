@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RayTuple {
     x: f64,
     y: f64,
@@ -41,6 +41,34 @@ impl RayTuple {
 
     pub fn is_a_vector(&self) -> bool {
         self.w == 0.0
+    }
+
+    pub fn magnitude(&self) -> f64 {
+        (self.x.powf(2.0) + self.y.powf(2.0) + self.z.powf(2.0) + self.w.powf(2.0)).sqrt()
+    }
+
+    pub fn normalize(&self) -> Self {
+        let magnitude = self.magnitude();
+
+        Self {
+            x: self.x / magnitude,
+            y: self.y / magnitude,
+            z: self.z / magnitude,
+            w: self.w / magnitude,
+        }
+    }
+
+    pub fn dot(&self, other: Self) -> f64 {
+        (self.x * other.x) + (self.y * other.y) + (self.z * other.z) + (self.w * other.w)
+    }
+
+    pub fn cross(&self, other: Self) -> Self {
+        Self {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x,
+            w: 0.0,
+        }
     }
 }
 
@@ -247,5 +275,75 @@ mod tests {
         let a = RayTuple::new(1.0, -2.0, 3.0, -4.0);
         let d = a / 2.0;
         assert_eq!(d, RayTuple::new(0.5, -1.0, 1.5, -2.0));
+    }
+
+    //Magnitude
+    #[test]
+    fn magnitude_of_vector_1_0_0() {
+        let a = RayTuple::vector(1.0, 0.0, 0.0);
+        assert_eq!(a.magnitude(), 1.0);
+    }
+
+    #[test]
+    fn magnitude_of_vector_0_1_0() {
+        let a = RayTuple::vector(0.0, 1.0, 0.0);
+        assert_eq!(a.magnitude(), 1.0);
+    }
+
+    #[test]
+    fn magnitude_of_vector_0_0_1() {
+        let a = RayTuple::vector(0.0, 0.0, 1.0);
+        assert_eq!(a.magnitude(), 1.0);
+    }
+
+    #[test]
+    fn magnitude_of_vector_1_2_3() {
+        let a = RayTuple::vector(1.0, 2.0, 3.0);
+        assert_eq!(a.magnitude(), (14.0_f64).sqrt());
+    }
+
+    #[test]
+    fn magnitude_of_negative_vector_1_2_3() {
+        let a = RayTuple::vector(-1.0, -2.0, -3.0);
+        assert_eq!(a.magnitude(), (14.0_f64).sqrt());
+    }
+
+    #[test]
+    fn normal_vector_4_0_0() {
+        let a = RayTuple::vector(4.0, 0.0, 0.0);
+        assert_eq!(a.normalize(), RayTuple::vector(1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn normal_vector_1_2_3() {
+        let a = RayTuple::vector(1.0, 2.0, 3.0);
+        assert_eq!(a.normalize(), RayTuple::vector(0.26726, 0.53452, 0.80178));
+    }
+
+    #[test]
+    fn magnitude_of_normal_is_1() {
+        let a = RayTuple::vector(1.0, 2.0, 3.0);
+        let n = a.normalize();
+        assert_eq!(n.magnitude(), 1.0);
+    }
+
+    //Dot Product test
+    #[test]
+    fn dot_product() {
+        let a = RayTuple::vector(1.0, 2.0, 3.0);
+        let b = RayTuple::vector(2.0, 3.0, 4.0);
+        assert_eq!(a.dot(b), 20.0);
+    }
+
+    //Cross Product test
+    #[test]
+    fn cross_product() {
+        let a = RayTuple::vector(1.0, 2.0, 3.0);
+        let b = RayTuple::vector(2.0, 3.0, 4.0);
+
+        let x = a.clone();
+        let y = b.clone();
+        assert_eq!(a.cross(b), RayTuple::vector(-1.0, 2.0, -1.0));
+        assert_eq!(y.cross(x), RayTuple::vector(1.0, -2.0, 1.0));
     }
 }
