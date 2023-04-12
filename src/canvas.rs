@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 use crate::color::Color;
+use crate::raytuple::RayTuple;
+use std::fs::File;
+use std::io::Write;
 use std::mem;
 
 #[derive(Debug)]
 pub struct Canvas {
-    pub width: i32,
-    pub height: i32,
+    width: i32,
+    height: i32,
     pixels: Vec<Color>,
 }
 
@@ -72,6 +75,24 @@ impl Canvas {
         }
 
         h1 + &h2 + &h3 + &pixel_data
+    }
+
+    pub fn save_ppm(&self, filename: &'static str) {
+        let mut file = File::create(filename).unwrap();
+        let res = file.write_all(self.to_ppm().as_bytes());
+
+        match res {
+            Ok(()) => println!("Canvas saved to {filename}"),
+            Err(e) => println!("Error saving file: {}", e.to_string()),
+        }
+    }
+
+    pub fn get_width(&self) -> i32 {
+        self.width
+    }
+
+    pub fn get_height(&self) -> i32 {
+        self.height
     }
 }
 
@@ -142,4 +163,48 @@ mod tests {
         let len = ppm.len();
         assert_eq!(&ppm[len - 1..len], "\n");
     }
+}
+
+//We adjust the chapter 1 cannon exercise and graph the points on a canvas, then save it to a .ppm file
+pub fn chapter_two_graph() {
+    fn tick(p: (RayTuple, RayTuple), e: (RayTuple, RayTuple)) -> (RayTuple, RayTuple) {
+        let new_position = p.0 + p.1;
+        let new_velocity = p.1 + e.0 + e.1;
+        (new_position, new_velocity)
+    }
+
+    let mut p = (
+        RayTuple::point(0.0, 1.0, 0.0), //initial point, y=1, x/z = 0
+        RayTuple::vector(1.0, 1.8, 0.0).normalize() * 11.25, //the starting velocity is x=1, y=1.8 with a magnitude of 11.25
+    );
+
+    let e = (
+        RayTuple::vector(0.0, -0.1, 0.0),  //gravity
+        RayTuple::vector(-0.01, 0.0, 0.0), //wind
+    );
+
+    let mut c = Canvas::new(900, 550);
+
+    let mut tick_count = 1;
+
+    println!("t\tx\ty\tz");
+
+    while p.0.y > 0.0 {
+        println!("{tick_count}\t{}\t{}\t{}", p.0.x, p.0.y, p.0.z);
+        //convert point coordinates to graph coordinates
+        let x_coord = (p.0.x.round() as i32).clamp(0, c.get_width() - 1);
+        let y_coord = (c.get_height() - (p.0.y.round() as i32)).clamp(0, c.get_height() - 1);
+
+        c.write_pixel(x_coord, y_coord, Color::new(0.8, 0.2, 0.2));
+
+        p = tick(p, e);
+        tick_count += 1;
+    }
+
+    println!("{tick_count}\t{}\t{}\t{}", p.0.x, p.0.y, p.0.z);
+    let x_coord = (p.0.x.round() as i32).clamp(0, c.get_width() - 1);
+    let y_coord = (c.get_height() - (p.0.y.round() as i32)).clamp(0, c.get_height() - 1);
+
+    c.write_pixel(x_coord, y_coord, Color::new(0.8, 0.2, 0.2));
+    c.save_ppm("chapter2.ppm");
 }
