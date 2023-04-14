@@ -1,8 +1,6 @@
-use canvas::Canvas;
-use color::Color;
-
 mod canvas;
 mod color;
+mod matrix;
 mod raytuple;
 
 fn main() {
