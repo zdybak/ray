@@ -123,6 +123,24 @@ impl Matrix {
             self.minor(row, col)
         }
     }
+
+    pub fn invertible(self) -> bool {
+        Self::determinant(self) != 0.0
+    }
+
+    pub fn inverse(self) -> Option<Matrix> {
+        if !self.invertible() {
+            return None;
+        }
+        let mut m2 = Matrix::new(self.size);
+        for row in 0_usize..m2.size as usize {
+            for col in 0_usize..m2.size as usize {
+                let c = self.cofactor(row, col);
+                m2[col][row] = c / Matrix::determinant(self);
+            }
+        }
+        Some(m2)
+    }
 }
 
 impl PartialEq for Matrix {
@@ -430,4 +448,156 @@ mod tests {
         assert_eq!(a.cofactor(0, 3), 51.0);
         assert_eq!(Matrix::determinant(a), -4071.0);
     }
+
+    #[test]
+    fn is_invertible() {
+        let a = Matrix::new_matrix4([
+            [6.0, 4.0, 4.0, 4.0],
+            [5.0, 5.0, 7.0, 6.0],
+            [4.0, -9.0, 3.0, -7.0],
+            [9.0, 1.0, 7.0, -6.0],
+        ]);
+        assert_eq!(Matrix::determinant(a), -2120.0);
+        assert!(a.invertible());
+    }
+
+    #[test]
+    fn not_invertible() {
+        let a = Matrix::new_matrix4([
+            [-4.0, 2.0, -2.0, -3.0],
+            [9.0, 6.0, 2.0, 6.0],
+            [0.0, -5.0, 1.0, -5.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ]);
+        assert_eq!(Matrix::determinant(a), 0.0);
+        assert!(!a.invertible());
+    }
+
+    #[test]
+    fn inverse_of_matrix() {
+        let a = Matrix::new_matrix4([
+            [-5.0, 2.0, 6.0, -8.0],
+            [1.0, -5.0, 1.0, 8.0],
+            [7.0, 7.0, -6.0, -7.0],
+            [1.0, -3.0, 7.0, 4.0],
+        ]);
+        let b = a.inverse().unwrap();
+        assert_eq!(Matrix::determinant(a), 532.0);
+        assert_eq!(a.cofactor(2, 3), -160.0);
+        assert_eq!(b[3][2], -160.0 / 532.0);
+        assert_eq!(a.cofactor(3, 2), 105.0);
+        assert_eq!(b[2][3], 105.0 / 532.0);
+        assert_eq!(
+            b,
+            Matrix::new_matrix4([
+                [0.21805, 0.45113, 0.24060, -0.04511],
+                [-0.80827, -1.45677, -0.44361, 0.52068],
+                [-0.07895, -0.22368, -0.05263, 0.19737],
+                [-0.52256, -0.81391, -0.30075, 0.30639],
+            ])
+        );
+    }
+
+    #[test]
+    fn inverse_two() {
+        let a = Matrix::new_matrix4([
+            [8.0, -5.0, 9.0, 2.0],
+            [7.0, 5.0, 6.0, 1.0],
+            [-6.0, 0.0, 9.0, 6.0],
+            [-3.0, 0.0, -9.0, -4.0],
+        ]);
+        assert_eq!(
+            a.inverse().unwrap(),
+            Matrix::new_matrix4([
+                [-0.15385, -0.15385, -0.28205, -0.53846],
+                [-0.07692, 0.12308, 0.02564, 0.03077],
+                [0.35897, 0.35897, 0.43590, 0.92308],
+                [-0.69231, -0.69231, -0.76923, -1.92308],
+            ])
+        );
+    }
+
+    #[test]
+    fn inverse_three() {
+        let a = Matrix::new_matrix4([
+            [9.0, 3.0, 0.0, 9.0],
+            [-5.0, -2.0, -6.0, -3.0],
+            [-4.0, 9.0, 6.0, 4.0],
+            [-7.0, 6.0, 6.0, 2.0],
+        ]);
+        assert_eq!(
+            a.inverse().unwrap(),
+            Matrix::new_matrix4([
+                [-0.04074, -0.07778, 0.14444, -0.22222],
+                [-0.07778, 0.03333, 0.36667, -0.33333],
+                [-0.02901, -0.14630, -0.10926, 0.12963],
+                [0.17778, 0.06667, -0.26667, 0.33333],
+            ])
+        );
+    }
+
+    #[test]
+    fn multiply_inverse() {
+        let a = Matrix::new_matrix4([
+            [3.0, -9.0, 7.0, 3.0],
+            [3.0, -8.0, 2.0, -9.0],
+            [-4.0, 4.0, 4.0, 1.0],
+            [-6.0, 5.0, -1.0, 1.0],
+        ]);
+        let b = Matrix::new_matrix4([
+            [8.0, 2.0, 2.0, 2.0],
+            [3.0, -1.0, 7.0, 0.0],
+            [7.0, 0.0, 5.0, 4.0],
+            [6.0, -2.0, 0.0, 5.0],
+        ]);
+        let c = a * b;
+        assert_eq!(c * b.inverse().unwrap(), a);
+    }
+}
+
+pub fn chapter_three_matrix() {
+    //what happens when you invert the identity matrix?
+    let identity = Matrix::identity();
+    println!("Inverted identity matrix: {:?}", identity.inverse());
+    //A: It doesn't change
+
+    //what do you get when you multiply a matrix by it's inverse?
+    let a = Matrix::new_matrix4([
+        [1.0,2.0,3.0,4.0],
+        [5.0,6.0,7.0,8.0],
+        [9.0,-8.0,7.0,-6.0],
+        [5.0,4.0,-3.0,2.0],
+    ]);
+    let b = a.inverse().unwrap();
+    let c = a * b;
+    println!("A multiplied by it's inverse, a * a^-1 = {:?}", c);
+    //A: When you multiply a matrix by it's inverse you get the identity matrix
+
+    //Is there any difference between the inverse of the transpose, and the transpose of the inverse of a matrix?
+    let a = Matrix::new_matrix4([
+        [-2.0,5.0,0.0,6.0],
+        [6.0, -4.0,-3.0,-3.0],
+        [17.0,1.0,-2.0,8.0],
+        [0.0,0.0,3.0,-4.0],
+    ]);
+    let it = a.inverse().unwrap().transpose();
+    let ti = a.transpose().inverse().unwrap();
+
+    println!("There is no difference between the inverse of the transpose and the transpose of the inverse: {}", it==ti);
+
+    //Given multiplying the identity matrix by a tuple gives the tuple unchanged, what happens when you change 
+    //any single element of the identity matrix prior to multiplying?
+    let r = RayTuple::new(1.0,1.0,1.0,1.0);
+    let mut i = Matrix::identity();
+
+    assert_eq!(RayTuple::new(1.0,1.0,1.0,1.0), i * r);
+
+    i[1][3] = 2.0;
+    let ir = i * r;
+
+    println!("i * r = {:?}", ir);
+    //A: It appears that altering other elements in the identity matrix adds to the tuple in some way
+    //this is likely useful for translation? changing the second row, fourth column to 2.0 ended up adding 2
+    //to the y coordinate in the tuple.
+
 }
