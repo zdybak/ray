@@ -563,10 +563,10 @@ pub fn chapter_three_matrix() {
 
     //what do you get when you multiply a matrix by it's inverse?
     let a = Matrix::new_matrix4([
-        [1.0,2.0,3.0,4.0],
-        [5.0,6.0,7.0,8.0],
-        [9.0,-8.0,7.0,-6.0],
-        [5.0,4.0,-3.0,2.0],
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, -8.0, 7.0, -6.0],
+        [5.0, 4.0, -3.0, 2.0],
     ]);
     let b = a.inverse().unwrap();
     let c = a * b;
@@ -575,22 +575,22 @@ pub fn chapter_three_matrix() {
 
     //Is there any difference between the inverse of the transpose, and the transpose of the inverse of a matrix?
     let a = Matrix::new_matrix4([
-        [-2.0,5.0,0.0,6.0],
-        [6.0, -4.0,-3.0,-3.0],
-        [17.0,1.0,-2.0,8.0],
-        [0.0,0.0,3.0,-4.0],
+        [-2.0, 5.0, 0.0, 6.0],
+        [6.0, -4.0, -3.0, -3.0],
+        [17.0, 1.0, -2.0, 8.0],
+        [0.0, 0.0, 3.0, -4.0],
     ]);
     let it = a.inverse().unwrap().transpose();
     let ti = a.transpose().inverse().unwrap();
 
     println!("There is no difference between the inverse of the transpose and the transpose of the inverse: {}", it==ti);
 
-    //Given multiplying the identity matrix by a tuple gives the tuple unchanged, what happens when you change 
+    //Given multiplying the identity matrix by a tuple gives the tuple unchanged, what happens when you change
     //any single element of the identity matrix prior to multiplying?
-    let r = RayTuple::new(1.0,1.0,1.0,1.0);
+    let r = RayTuple::new(1.0, 1.0, 1.0, 1.0);
     let mut i = Matrix::identity();
 
-    assert_eq!(RayTuple::new(1.0,1.0,1.0,1.0), i * r);
+    assert_eq!(RayTuple::new(1.0, 1.0, 1.0, 1.0), i * r);
 
     i[1][3] = 2.0;
     let ir = i * r;
@@ -599,5 +599,4 @@ pub fn chapter_three_matrix() {
     //A: It appears that altering other elements in the identity matrix adds to the tuple in some way
     //this is likely useful for translation? changing the second row, fourth column to 2.0 ended up adding 2
     //to the y coordinate in the tuple.
-
 }
