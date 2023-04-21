@@ -141,6 +141,54 @@ impl Matrix {
         }
         Some(m2)
     }
+
+    pub fn translation(x: f64, y: f64, z: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[0][3] = x;
+        m[1][3] = y;
+        m[2][3] = z;
+
+        m
+    }
+
+    pub fn scaling(x: f64, y: f64, z: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[0][0] = x;
+        m[1][1] = y;
+        m[2][2] = z;
+
+        m
+    }
+
+    pub fn rotation_x(r: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[1][1] = r.cos();
+        m[1][2] = -r.sin();
+        m[2][1] = r.sin();
+        m[2][2] = r.cos();
+
+        m
+    }
+
+    pub fn rotation_y(r: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[0][0] = r.cos();
+        m[0][2] = r.sin();
+        m[2][0] = -r.sin();
+        m[2][2] = r.cos();
+
+        m
+    }
+
+    pub fn rotation_z(r: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[0][0] = r.cos();
+        m[0][1] = -r.sin();
+        m[1][0] = r.sin();
+        m[1][1] = r.cos();
+
+        m
+    }
 }
 
 impl PartialEq for Matrix {
@@ -221,6 +269,7 @@ impl Mul<RayTuple> for Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     #[test]
     fn construct_matrix() {
@@ -552,6 +601,115 @@ mod tests {
         ]);
         let c = a * b;
         assert_eq!(c * b.inverse().unwrap(), a);
+    }
+
+    #[test]
+    fn multiply_point_by_translation() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let p = RayTuple::point(-3.0, 4.0, 5.0);
+
+        assert_eq!(transform * p, RayTuple::point(2.0, 1.0, 7.0));
+    }
+
+    #[test]
+    fn multiply_point_by_inverse_translation() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let inv = transform.inverse().unwrap();
+        let p = RayTuple::point(-3.0, 4.0, 5.0);
+
+        assert_eq!(inv * p, RayTuple::point(-8.0, 7.0, 3.0));
+    }
+
+    #[test]
+    fn translated_vector_doesnt_change() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let v = RayTuple::vector(-3.0, 4.0, 5.0);
+
+        assert_eq!(transform * v, v);
+    }
+
+    #[test]
+    fn scaling_point() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let p = RayTuple::point(-4.0, 6.0, 8.0);
+
+        assert_eq!(transform * p, RayTuple::point(-8.0, 18.0, 32.0));
+    }
+
+    #[test]
+    fn scaling_vector() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let v = RayTuple::vector(-4.0, 6.0, 8.0);
+
+        assert_eq!(transform * v, RayTuple::vector(-8.0, 18.0, 32.0));
+    }
+
+    #[test]
+    fn inverse_scaling_vector() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let inv = transform.inverse().unwrap();
+        let v = RayTuple::vector(-4.0, 6.0, 8.0);
+
+        assert_eq!(inv * v, RayTuple::vector(-2.0, 2.0, 2.0));
+    }
+
+    #[test]
+    fn reflection_is_negative_scaling() {
+        let transform = Matrix::scaling(-1.0, 1.0, 1.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(-2.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn rotate_point_around_x() {
+        let p = RayTuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_x(PI / 4.0);
+        let full_quarter = Matrix::rotation_x(PI / 2.0);
+
+        assert_eq!(
+            half_quarter * p,
+            RayTuple::point(0.0, (2.0_f64).sqrt() / 2.0, (2.0_f64).sqrt() / 2.0)
+        );
+        assert_eq!(full_quarter * p, RayTuple::point(0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn inverse_rotate_point_around_x() {
+        let p = RayTuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_x(PI / 4.0);
+        let inv = half_quarter.inverse().unwrap();
+
+        assert_eq!(
+            inv * p,
+            RayTuple::point(0.0, (2.0_f64).sqrt() / 2.0, -(2.0_f64).sqrt() / 2.0)
+        );
+    }
+
+    #[test]
+    fn rotate_point_around_y() {
+        let p = RayTuple::point(0.0, 0.0, 1.0);
+        let half_quarter = Matrix::rotation_y(PI / 4.0);
+        let full_quarter = Matrix::rotation_y(PI / 2.0);
+
+        assert_eq!(
+            half_quarter * p,
+            RayTuple::point((2.0_f64).sqrt() / 2.0, 0.0, (2.0_f64).sqrt() / 2.0)
+        );
+        assert_eq!(full_quarter * p, RayTuple::point(1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn rotate_point_around_z() {
+        let p = RayTuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_z(PI / 4.0);
+        let full_quarter = Matrix::rotation_z(PI / 2.0);
+
+        assert_eq!(
+            half_quarter * p,
+            RayTuple::point(-(2.0_f64).sqrt() / 2.0, (2.0_f64).sqrt() / 2.0, 0.0)
+        );
+        assert_eq!(full_quarter * p, RayTuple::point(-1.0, 0.0, 0.0));
     }
 }
 
