@@ -4,5 +4,5 @@ mod matrix;
 mod raytuple;
 
 fn main() {
-    matrix::chapter_three_matrix();
+    matrix::chapter_four_clockpoints();
 }

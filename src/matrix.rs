@@ -1,5 +1,8 @@
 #![allow(dead_code)]
+use crate::canvas::Canvas;
+use crate::color::Color;
 use crate::raytuple::RayTuple;
+use std::f64::consts::PI;
 use std::ops::{Index, IndexMut, Mul};
 
 #[derive(Debug, Clone, Copy)]
@@ -186,6 +189,18 @@ impl Matrix {
         m[0][1] = -r.sin();
         m[1][0] = r.sin();
         m[1][1] = r.cos();
+
+        m
+    }
+
+    pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix {
+        let mut m = Matrix::identity();
+        m[0][1] = xy;
+        m[0][2] = xz;
+        m[1][0] = yx;
+        m[1][2] = yz;
+        m[2][0] = zx;
+        m[2][1] = zy;
 
         m
     }
@@ -711,6 +726,81 @@ mod tests {
         );
         assert_eq!(full_quarter * p, RayTuple::point(-1.0, 0.0, 0.0));
     }
+
+    #[test]
+    fn shear_x_in_proportion_y() {
+        let transform = Matrix::shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(5.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn shear_x_in_proportion_z() {
+        let transform = Matrix::shearing(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(6.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn shear_y_in_proportion_x() {
+        let transform = Matrix::shearing(0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(2.0, 5.0, 4.0));
+    }
+
+    #[test]
+    fn shear_y_in_proportion_z() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(2.0, 7.0, 4.0));
+    }
+
+    #[test]
+    fn shear_z_in_proportion_x() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(2.0, 3.0, 6.0));
+    }
+
+    #[test]
+    fn shear_z_in_proportion_y() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        let p = RayTuple::point(2.0, 3.0, 4.0);
+
+        assert_eq!(transform * p, RayTuple::point(2.0, 3.0, 7.0));
+    }
+
+    #[test]
+    fn transformations_in_sequence() {
+        let p = RayTuple::point(1.0, 0.0, 1.0);
+        let a = Matrix::rotation_x(PI / 2.0);
+        let b = Matrix::scaling(5.0, 5.0, 5.0);
+        let c = Matrix::translation(10.0, 5.0, 7.0);
+
+        let p2 = a * p;
+        assert_eq!(p2, RayTuple::point(1.0, -1.0, 0.0));
+
+        let p3 = b * p2;
+        assert_eq!(p3, RayTuple::point(5.0, -5.0, 0.0));
+
+        let p4 = c * p3;
+        assert_eq!(p4, RayTuple::point(15.0, 0.0, 7.0));
+    }
+
+    fn transformations_at_once() {
+        let p = RayTuple::point(1.0, 0.0, 1.0);
+        let a = Matrix::rotation_x(PI / 2.0);
+        let b = Matrix::scaling(5.0, 5.0, 5.0);
+        let c = Matrix::translation(10.0, 5.0, 7.0);
+
+        let t = c * b * a;
+        assert_eq!(t * p, RayTuple::point(15.0, 0.0, 7.0));
+    }
 }
 
 pub fn chapter_three_matrix() {
@@ -757,4 +847,27 @@ pub fn chapter_three_matrix() {
     //A: It appears that altering other elements in the identity matrix adds to the tuple in some way
     //this is likely useful for translation? changing the second row, fourth column to 2.0 ended up adding 2
     //to the y coordinate in the tuple.
+}
+
+pub fn chapter_four_clockpoints() {
+    let mut can = Canvas::new(800, 800);
+    let radial_interval = PI / 6.0;
+    let clock_radius: f64 = (can.get_width() / 3) as f64;
+    let x_offset = (can.get_width() / 2) as f64;
+    let y_offset = (can.get_height() / 2) as f64;
+    let plot_color = Color::new(1.0, 1.0, 1.0);
+
+    let mut rotation_angle = 0.0;
+    let mut plot_point = RayTuple::point(0.0, clock_radius, 0.0);
+    while rotation_angle <= (2.0 * PI) {
+        let x: i32 = (x_offset + plot_point.x).round() as i32;
+        let y: i32 = (y_offset + plot_point.y).round() as i32;
+        can.write_pixel(x, y, plot_color);
+        println!("Rotation angle: {}, plotting point {},{}", rotation_angle, plot_point.x, plot_point.y);
+
+        rotation_angle += radial_interval;
+        let t = Matrix::rotation_z(radial_interval);
+        plot_point = t * plot_point;
+    }
+    can.save_ppm("clockface.ppm");
 }
