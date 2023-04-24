@@ -1,8 +1,8 @@
 mod canvas;
 mod color;
 mod matrix;
+mod ray;
 mod raytuple;
+mod sphere;
 
-fn main() {
-    matrix::chapter_four_clockpoints();
-}
+fn main() {}

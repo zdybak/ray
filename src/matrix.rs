@@ -863,7 +863,10 @@ pub fn chapter_four_clockpoints() {
         let x: i32 = (x_offset + plot_point.x).round() as i32;
         let y: i32 = (y_offset + plot_point.y).round() as i32;
         can.write_pixel(x, y, plot_color);
-        println!("Rotation angle: {}, plotting point {},{}", rotation_angle, plot_point.x, plot_point.y);
+        println!(
+            "Rotation angle: {}, plotting point {},{}",
+            rotation_angle, plot_point.x, plot_point.y
+        );
 
         rotation_angle += radial_interval;
         let t = Matrix::rotation_z(radial_interval);
