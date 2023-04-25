@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::intersection::Intersection;
 use crate::raytuple::RayTuple;
 use crate::sphere::Sphere;
 
