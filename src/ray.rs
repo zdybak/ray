@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 use crate::canvas::Canvas;
+use crate::color::Color;
+use crate::intersection::Intersection;
 use crate::matrix::Matrix;
 use crate::raytuple::RayTuple;
-use crate::color::Color;
 use crate::sphere::Sphere;
-use crate::intersection::Intersection;
 use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Copy)]
@@ -88,7 +88,7 @@ mod tests {
 pub fn chapter_five_raysphere() {
     let canvas_pixels = 100;
     let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
-    let color = Color::new(1.0,0.0,0.0);
+    let color = Color::new(1.0, 0.0, 0.0);
     let shape = Sphere::new();
 
     //test shape transforms NOTE: change let shape to a mutable Sphere for these.
@@ -97,7 +97,7 @@ pub fn chapter_five_raysphere() {
     //shape.set_transform(Matrix::rotation_z(PI / 4.0) * Matrix::scaling(0.5,1.0,1.0));
     //shape.set_transform(Matrix::shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0) * Matrix::scaling(0.5,1.0,1.0));
 
-    let ray_origin = RayTuple::point(0.0,0.0,-5.0);
+    let ray_origin = RayTuple::point(0.0, 0.0, -5.0);
     let wall_z = 10.0;
     let wall_size = 7.0;
 
@@ -117,7 +117,7 @@ pub fn chapter_five_raysphere() {
             match h {
                 Some(_inter) => {
                     canvas.write_pixel(x, y, color);
-                },
+                }
                 None => continue,
             };
         }
