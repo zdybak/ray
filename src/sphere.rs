@@ -54,6 +54,15 @@ impl Sphere {
 
         intersections
     }
+
+    pub fn normal_at(self, world_point: RayTuple) -> RayTuple {
+        let object_point = self.transform.inverse().unwrap() * world_point;
+        let object_normal = object_point - RayTuple::point(0.0, 0.0, 0.0);
+        let mut world_normal = self.transform.inverse().unwrap().transpose() * object_normal;
+        world_normal.w = 0.0;
+
+        world_normal.normalize()
+    }
 }
 
 impl PartialEq for Sphere {
@@ -65,6 +74,7 @@ impl PartialEq for Sphere {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     #[test]
     fn ray_intersects_sphere_at_two_points() {
@@ -190,5 +200,61 @@ mod tests {
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 0);
+    }
+
+    #[test]
+    fn normal_spere_at_x_axis() {
+        let s = Sphere::new();
+        let n = s.normal_at(RayTuple::point(1.0, 0.0, 0.0));
+
+        assert_eq!(n, RayTuple::vector(1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn normal_sphere_at_y_axis() {
+        let s = Sphere::new();
+        let n = s.normal_at(RayTuple::point(0.0, 1.0, 0.0));
+
+        assert_eq!(n, RayTuple::vector(0.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn normal_sphere_at_z_axis() {
+        let s = Sphere::new();
+        let n = s.normal_at(RayTuple::point(0.0, 0.0, 1.0));
+
+        assert_eq!(n, RayTuple::vector(0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn normal_non_axial() {
+        let coord: f64 = 3.0_f64.sqrt() / 3.0;
+        let s = Sphere::new();
+        let n = s.normal_at(RayTuple::point(coord, coord, coord));
+
+        assert_eq!(n, RayTuple::vector(coord, coord, coord));
+    }
+
+    #[test]
+    fn normal_on_translated_sphere() {
+        let mut s = Sphere::new();
+        s.set_transform(Matrix::translation(0.0, 1.0, 0.0));
+        let n = s.normal_at(RayTuple::point(0.0, 1.70711, -0.70711));
+
+        assert_eq!(n, RayTuple::vector(0.0, 0.70711, -0.70711));
+    }
+
+    #[test]
+    fn normal_on_transformed_sphere() {
+        let mut s = Sphere::new();
+        let m = Matrix::scaling(1.0, 0.5, 1.0) * Matrix::rotation_z(PI / 5.0);
+        s.set_transform(m);
+        let n = s.normal_at(RayTuple::point(
+            0.0,
+            2.0_f64.sqrt() / 2.0,
+            -2.0_f64.sqrt() / 2.0,
+        ));
+
+        assert_eq!(n, RayTuple::vector(0.0, 0.97014, -0.24254));
     }
 }

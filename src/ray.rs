@@ -5,7 +5,6 @@ use crate::intersection::Intersection;
 use crate::matrix::Matrix;
 use crate::raytuple::RayTuple;
 use crate::sphere::Sphere;
-use std::f64::consts::PI;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
