@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use core::panic;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug, Clone, Copy)]
@@ -70,6 +71,14 @@ impl RayTuple {
             z: self.x * other.y - self.y * other.x,
             w: 0.0,
         }
+    }
+
+    pub fn reflect(self, normal: Self) -> Self {
+        if !self.is_a_vector() {
+            panic!("reflect call on a non-vector");
+        }
+
+        self - normal * 2.0 * self.dot(normal)
     }
 }
 
@@ -346,6 +355,24 @@ mod tests {
         let y = b.clone();
         assert_eq!(a.cross(b), RayTuple::vector(-1.0, 2.0, -1.0));
         assert_eq!(y.cross(x), RayTuple::vector(1.0, -2.0, 1.0));
+    }
+
+    #[test]
+    fn reflect_45_degree_vector() {
+        let v = RayTuple::vector(1.0, -1.0, 0.0);
+        let n = RayTuple::vector(0.0, 1.0, 0.0);
+        let r = v.reflect(n);
+
+        assert_eq!(r, RayTuple::vector(1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn reflect_vector_slanter() {
+        let v = RayTuple::vector(0.0, -1.0, 0.0);
+        let n = RayTuple::vector(2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0, 0.0);
+        let r = v.reflect(n);
+
+        assert_eq!(r, RayTuple::vector(1.0, 0.0, 0.0));
     }
 }
 
