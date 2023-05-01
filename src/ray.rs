@@ -127,7 +127,7 @@ pub fn chapter_five_raysphere() {
 }
 
 pub fn chapter_six_lighting() {
-    let canvas_pixels = 2160;
+    let canvas_pixels = 800;
     let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
 
     //ch6 new: color is now determined by calculated material/light
@@ -139,7 +139,7 @@ pub fn chapter_six_lighting() {
     //shape.material.color = Color::new(1.0, 0.2, 1.0);
 
     //Sunflower Yellow
-    let sunflower_yellow = Color::new(232.0 / 255.0, 222.0 / 255.0, 42.0 / 255.0);
+    let sunflower_yellow = Color::new(232.0/255.0, 222.0/255.0, 42.0/255.0);
     shape.material.color = sunflower_yellow;
 
     //ch6 new: add a light source
