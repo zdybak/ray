@@ -2,6 +2,8 @@
 use crate::canvas::Canvas;
 use crate::color::Color;
 use crate::intersection::Intersection;
+use crate::light::Light;
+use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::raytuple::RayTuple;
 use crate::sphere::Sphere;
@@ -122,4 +124,59 @@ pub fn chapter_five_raysphere() {
         }
     }
     canvas.save_ppm("chapter5sphere.ppm");
+}
+
+pub fn chapter_six_lighting() {
+    let canvas_pixels = 2160;
+    let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
+
+    //ch6 new: color is now determined by calculated material/light
+    //let color = Color::new(1.0, 0.0, 0.0);
+
+    //ch6 new: assign a material to the sphere
+    let mut shape = Sphere::new();
+    shape.material = Material::new();
+    //shape.material.color = Color::new(1.0, 0.2, 1.0);
+
+    //Sunflower Yellow
+    let sunflower_yellow = Color::new(232.0 / 255.0, 222.0 / 255.0, 42.0 / 255.0);
+    shape.material.color = sunflower_yellow;
+
+    //ch6 new: add a light source
+    let light = Light::point_light(
+        RayTuple::point(-10.0, 10.0, -10.0),
+        Color::new(1.0, 1.0, 1.0),
+    );
+
+    let ray_origin = RayTuple::point(0.0, 0.0, -5.0);
+    let wall_z = 10.0;
+    let wall_size = 7.0;
+
+    let pixel_size = wall_size / canvas_pixels as f64;
+    let half = wall_size / 2.0;
+
+    for y in 0..canvas_pixels {
+        let world_y = half - pixel_size * y as f64;
+        for x in 0..canvas_pixels {
+            let world_x = -half + pixel_size * x as f64;
+            let position = RayTuple::point(world_x, world_y, wall_z);
+
+            let r = Ray::new(ray_origin, (position - ray_origin).normalize());
+            let xs = shape.intersect(r);
+
+            let h = Intersection::hit(xs);
+            match h {
+                //ch6 new: we are now using the intersection to calculate the lighting at the hit
+                Some(inter) => {
+                    let point = r.position(inter.t);
+                    let normal = inter.object.normal_at(point);
+                    let eye = -r.direction;
+                    let color = inter.object.material.lighting(&light, point, eye, normal);
+                    canvas.write_pixel(x, y, color);
+                }
+                None => continue,
+            };
+        }
+    }
+    canvas.save_ppm("chapter6sphere.ppm");
 }
