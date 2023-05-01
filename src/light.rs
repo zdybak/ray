@@ -1,19 +1,19 @@
 #![allow(dead_code)]
 
-use crate::raytuple::RayTuple;
 use crate::color::Color;
+use crate::raytuple::RayTuple;
 
 #[derive(Debug)]
 pub struct Light {
-    intensity: Color,
-    position: RayTuple,
+    pub position: RayTuple,
+    pub intensity: Color,
 }
 
 impl Light {
-    pub fn point_light(intensity: Color, position: RayTuple) -> Self {
+    pub fn point_light(position: RayTuple, intensity: Color) -> Self {
         Self {
-            intensity,
             position,
+            intensity,
         }
     }
 }
@@ -24,9 +24,9 @@ mod tests {
 
     #[test]
     fn point_light_has_position_and_intensity() {
-        let intensity = Color::new(1.0,1.0,1.0);
-        let position = RayTuple::point(0.0,0.0,0.0);
-        let light = Light::point_light(intensity, position);
+        let intensity = Color::new(1.0, 1.0, 1.0);
+        let position = RayTuple::point(0.0, 0.0, 0.0);
+        let light = Light::point_light(position, intensity);
 
         assert_eq!(light.intensity, intensity);
         assert_eq!(light.position, position);

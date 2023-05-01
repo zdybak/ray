@@ -1,10 +1,13 @@
 mod canvas;
 mod color;
 mod intersection;
+mod light;
+mod material;
 mod matrix;
 mod ray;
 mod raytuple;
 mod sphere;
-mod light;
 
-fn main() {}
+fn main() {
+    ray::chapter_six_lighting();
+}

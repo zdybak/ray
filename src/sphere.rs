@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::intersection::Intersection;
+use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
 use crate::raytuple::RayTuple;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 pub struct Sphere {
     id: Uuid,
     transform: Matrix,
+    pub material: Material,
 }
 
 impl Sphere {
@@ -17,6 +19,7 @@ impl Sphere {
         Self {
             id: Uuid::new_v4(),
             transform: Matrix::identity(),
+            material: Material::new(),
         }
     }
 
@@ -256,5 +259,21 @@ mod tests {
         ));
 
         assert_eq!(n, RayTuple::vector(0.0, 0.97014, -0.24254));
+    }
+
+    #[test]
+    fn sphere_has_default_material() {
+        let s = Sphere::new();
+
+        assert_eq!(s.material, Material::new());
+    }
+
+    #[test]
+    fn sphere_material_can_be_set() {
+        let mut s = Sphere::new();
+        let mut m = Material::new();
+        m.ambient = 1.0;
+        s.material = m;
+        assert_eq!(s.material, m);
     }
 }
