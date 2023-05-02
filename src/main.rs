@@ -7,6 +7,7 @@ mod matrix;
 mod ray;
 mod raytuple;
 mod sphere;
+mod world;
 
 fn main() {
     ray::chapter_six_lighting();
