@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use crate::computations::Computations;
+use crate::ray::Ray;
 use crate::sphere::Sphere;
 
 #[derive(Debug, Clone, Copy)]
@@ -30,6 +32,17 @@ impl Intersection {
 
         lowest_positive_i
     }
+
+    pub fn prepare_computations(self, r: Ray) -> Computations {
+        let p = r.position(self.t);
+        Computations::new(
+            self.t,
+            self.object,
+            p,
+            -r.direction,
+            self.object.normal_at(p),
+        )
+    }
 }
 
 impl PartialEq for Intersection {
@@ -54,6 +67,7 @@ macro_rules! intersections {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::raytuple::RayTuple;
 
     #[test]
     fn intersection_encapsulates_time_and_object() {
@@ -123,5 +137,22 @@ mod tests {
 
         let i = Intersection::hit(xs).unwrap();
         assert_eq!(i, i4);
+    }
+
+    #[test]
+    fn precomputing_intersection_state() {
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(4.0, shape);
+        let comps = i.prepare_computations(r);
+
+        assert_eq!(comps.t, i.t);
+        assert_eq!(comps.object, i.object);
+        assert_eq!(comps.point, RayTuple::point(0.0, 0.0, -1.0));
+        assert_eq!(comps.eyev, RayTuple::vector(0.0, 0.0, -1.0));
+        assert_eq!(comps.normalv, RayTuple::vector(0.0, 0.0, -1.0));
     }
 }

@@ -1,5 +1,6 @@
 mod canvas;
 mod color;
+mod computations;
 mod intersection;
 mod light;
 mod material;
