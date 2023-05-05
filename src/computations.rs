@@ -7,16 +7,25 @@ pub struct Computations {
     pub point: RayTuple,
     pub eyev: RayTuple,
     pub normalv: RayTuple,
+    pub inside: bool,
 }
 
 impl Computations {
-    pub fn new(t: f64, object: Sphere, point: RayTuple, eyev: RayTuple, normalv: RayTuple) -> Self {
+    pub fn new(
+        t: f64,
+        object: Sphere,
+        point: RayTuple,
+        eyev: RayTuple,
+        normalv: RayTuple,
+        inside: bool,
+    ) -> Self {
         Self {
             t,
             object,
             point,
             eyev,
             normalv,
+            inside,
         }
     }
 }

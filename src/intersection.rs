@@ -35,13 +35,15 @@ impl Intersection {
 
     pub fn prepare_computations(self, r: Ray) -> Computations {
         let p = r.position(self.t);
-        Computations::new(
-            self.t,
-            self.object,
-            p,
-            -r.direction,
-            self.object.normal_at(p),
-        )
+        let eyev = -r.direction;
+        let mut normalv = self.object.normal_at(p);
+        let mut inside = false;
+        if normalv.dot(eyev) < 0.0 {
+            inside = true;
+            normalv = -normalv;
+        }
+
+        Computations::new(self.t, self.object, p, eyev, normalv, inside)
     }
 }
 
@@ -153,6 +155,35 @@ mod tests {
         assert_eq!(comps.object, i.object);
         assert_eq!(comps.point, RayTuple::point(0.0, 0.0, -1.0));
         assert_eq!(comps.eyev, RayTuple::vector(0.0, 0.0, -1.0));
+        assert_eq!(comps.normalv, RayTuple::vector(0.0, 0.0, -1.0));
+    }
+
+    #[test]
+    fn precomput_hit_on_outside() {
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(4.0, shape);
+        let comps = i.prepare_computations(r);
+
+        assert_eq!(comps.inside, false);
+    }
+
+    #[test]
+    fn precomput_hit_on_inside() {
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 0.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(1.0, shape);
+        let comps = i.prepare_computations(r);
+
+        assert_eq!(comps.point, RayTuple::point(0.0, 0.0, 1.0));
+        assert_eq!(comps.eyev, RayTuple::vector(0.0, 0.0, -1.0));
+        assert!(comps.inside);
         assert_eq!(comps.normalv, RayTuple::vector(0.0, 0.0, -1.0));
     }
 }
