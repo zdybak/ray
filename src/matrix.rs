@@ -204,6 +204,21 @@ impl Matrix {
 
         m
     }
+
+    pub fn view_transform(from: RayTuple, to: RayTuple, up: RayTuple) -> Matrix {
+        let forward = (to - from).normalize();
+        let upn = up.normalize();
+        let left = forward.cross(upn);
+        let true_up = left.cross(forward);
+
+        let orientation = Matrix::new_matrix4([
+            [left.x, left.y, left.z, 0.0],
+            [true_up.x, true_up.y, true_up.z, 0.0],
+            [-forward.x, -forward.y, -forward.z, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]);
+        orientation * Matrix::translation(-from.x, -from.y, -from.z)
+    }
 }
 
 impl PartialEq for Matrix {
@@ -792,6 +807,7 @@ mod tests {
         assert_eq!(p4, RayTuple::point(15.0, 0.0, 7.0));
     }
 
+    #[test]
     fn transformations_at_once() {
         let p = RayTuple::point(1.0, 0.0, 1.0);
         let a = Matrix::rotation_x(PI / 2.0);
@@ -800,6 +816,52 @@ mod tests {
 
         let t = c * b * a;
         assert_eq!(t * p, RayTuple::point(15.0, 0.0, 7.0));
+    }
+
+    #[test]
+    fn view_transform_default() {
+        let from = RayTuple::point(0.0, 0.0, 0.0);
+        let to = RayTuple::point(0.0, 0.0, -1.0);
+        let up = RayTuple::vector(0.0, 1.0, 0.0);
+
+        let t = Matrix::view_transform(from, to, up);
+        assert_eq!(t, Matrix::identity());
+    }
+
+    #[test]
+    fn view_transform_positive_z() {
+        let from = RayTuple::point(0.0, 0.0, 0.0);
+        let to = RayTuple::point(0.0, 0.0, 1.0);
+        let up = RayTuple::vector(0.0, 1.0, 0.0);
+
+        let t = Matrix::view_transform(from, to, up);
+        assert_eq!(t, Matrix::scaling(-1.0, 1.0, -1.0));
+    }
+
+    #[test]
+    fn view_translation_moves_the_world() {
+        let from = RayTuple::point(0.0, 0.0, 8.0);
+        let to = RayTuple::point(0.0, 0.0, 0.0);
+        let up = RayTuple::vector(0.0, 1.0, 0.0);
+
+        let t = Matrix::view_transform(from, to, up);
+        assert_eq!(t, Matrix::translation(0.0, 0.0, -8.0));
+    }
+
+    #[test]
+    fn view_translation_arbitrary() {
+        let from = RayTuple::point(1.0, 3.0, 2.0);
+        let to = RayTuple::point(4.0, -2.0, 8.0);
+        let up = RayTuple::vector(1.0, 1.0, 0.0);
+
+        let t = Matrix::view_transform(from, to, up);
+        let m = Matrix::new_matrix4([
+            [-0.50709, 0.50709, 0.67612, -2.36643],
+            [0.76772, 0.60609, 0.12122, -2.82843],
+            [-0.35857, 0.59761, -0.71714, 0.00000],
+            [0.00000, 0.00000, 0.00000, 1.00000],
+        ]);
+        assert_eq!(t, m);
     }
 }
 
