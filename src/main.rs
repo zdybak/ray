@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+mod camera;
 mod canvas;
 mod color;
 mod computations;
