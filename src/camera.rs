@@ -123,9 +123,12 @@ pub fn chapter_seven_scene() {
     w.objects.push(left);
     w.objects.push(right);
 
-    let mut c = Camera::new(2560, 1440, FRAC_PI_3);
+    //800x600 renders in release mode in just under 18 seconds
+    //change the camera from view_transform to a higher y and a much further back negative z (-20.0)\
+    //to see the stretched floor/wall spheres in action
+    let mut c = Camera::new(800, 600, FRAC_PI_3);
     c.transform = Matrix::view_transform(
-        RayTuple::point(0.0, 1.5, -5.0),
+        RayTuple::point(0.0, 1.5, -5.0), 
         RayTuple::point(0.0, 1.0, 0.0),
         RayTuple::vector(0.0, 1.0, 0.0),
     );
