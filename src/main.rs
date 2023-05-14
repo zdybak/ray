@@ -16,7 +16,7 @@ mod world;
 fn main() {
     let start_time = Instant::now();
 
-    ray::chapter_six_lighting();
+    camera::chapter_seven_scene();
 
     let elapsed_time = start_time.elapsed();
     println!("Program completed in {:.2?}", elapsed_time);

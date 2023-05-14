@@ -10,15 +10,20 @@ use crate::sphere::Sphere;
 use std::cmp::Ordering;
 
 pub struct World {
-    light: Light,
-    objects: Vec<Sphere>,
+    pub light: Light,
+    pub objects: Vec<Sphere>,
 }
 
 impl World {
-    //here we are skipping the book's empty world creation because it's a hassle to
-    //initiate a struct without giving it's members values.  We can always refactor
-    //and put the light in a Vec so that it can be implemented without any lights
-    //in the Vec if we need to, but I don't see that so far.
+    pub fn new() -> Self {
+        Self {
+            light: Light::point_light(
+                RayTuple::point(-10.0, 10.0, -10.0),
+                Color::new(1.0, 1.0, 1.0),
+            ),
+            objects: Vec::new(),
+        }
+    }
 
     pub fn default_world() -> Self {
         let mut s1 = Sphere::new();
