@@ -63,10 +63,15 @@ impl World {
     }
 
     pub fn shade_hit(&self, comps: Computations) -> Color {
-        comps
-            .object
-            .material
-            .lighting(&self.light, comps.point, comps.eyev, comps.normalv)
+        let shadowed = self.is_shadowed(comps.over_point);
+
+        comps.object.material.lighting(
+            &self.light,
+            comps.point,
+            comps.eyev,
+            comps.normalv,
+            shadowed,
+        )
     }
 
     pub fn color_at(&self, r: Ray) -> Color {
@@ -77,6 +82,27 @@ impl World {
             self.shade_hit(comps)
         } else {
             return Color::new(0.0, 0.0, 0.0);
+        }
+    }
+
+    pub fn is_shadowed(&self, p: RayTuple) -> bool {
+        let v = self.light.position - p;
+        let distance = v.magnitude();
+        let direction = v.normalize();
+
+        let r = Ray::new(p, direction);
+        let intersections = self.intersect_world(r);
+
+        let h_option = Intersection::hit(intersections);
+        match h_option {
+            Some(h) => {
+                if h.t < distance {
+                    true
+                } else {
+                    false
+                }
+            }
+            None => false,
         }
     }
 }
@@ -189,5 +215,60 @@ mod tests {
         );
         let c = w.color_at(r);
         assert_eq!(c, w.objects[1].material.color);
+    }
+
+    #[test]
+    fn there_is_no_shadow() {
+        let w = World::default_world();
+        let p = RayTuple::point(0.0, 10.0, 0.0);
+
+        assert!(!w.is_shadowed(p));
+    }
+
+    #[test]
+    fn there_is_shadow() {
+        let w = World::default_world();
+        let p = RayTuple::point(10.0, -10.0, 10.0);
+
+        assert!(w.is_shadowed(p));
+    }
+
+    #[test]
+    fn there_is_no_shadow_object_behind_light() {
+        let w = World::default_world();
+        let p = RayTuple::point(-20.0, 20.0, -20.0);
+
+        assert!(!w.is_shadowed(p));
+    }
+
+    #[test]
+    fn there_is_no_shadow_point_infront() {
+        let w = World::default_world();
+        let p = RayTuple::point(-2.0, 2.0, -2.0);
+
+        assert!(!w.is_shadowed(p));
+    }
+
+    #[test]
+    fn shade_hit_is_given_intersection_in_shadow() {
+        let mut w = World::new();
+        w.light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
+        let s1 = Sphere::new();
+        w.objects.push(s1);
+
+        let mut s2 = Sphere::new();
+        s2.set_transform(Matrix::translation(0.0, 0.0, 10.0));
+        w.objects.push(s2);
+
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let i = Intersection::new(4.0, s2);
+
+        let comps = i.prepare_computations(r);
+        let c = w.shade_hit(comps);
+
+        assert_eq!(c, Color::new(0.1, 0.1, 0.1));
     }
 }

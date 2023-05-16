@@ -42,8 +42,9 @@ impl Intersection {
             inside = true;
             normalv = -normalv;
         }
+        let over_point = p + normalv * 0.00001;
 
-        Computations::new(self.t, self.object, p, eyev, normalv, inside)
+        Computations::new(self.t, self.object, p, over_point, eyev, normalv, inside)
     }
 }
 
@@ -69,6 +70,7 @@ macro_rules! intersections {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::matrix::Matrix;
     use crate::raytuple::RayTuple;
 
     #[test]
@@ -185,5 +187,20 @@ mod tests {
         assert_eq!(comps.eyev, RayTuple::vector(0.0, 0.0, -1.0));
         assert!(comps.inside);
         assert_eq!(comps.normalv, RayTuple::vector(0.0, 0.0, -1.0));
+    }
+
+    #[test]
+    fn the_hit_should_offset_the_point() {
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let mut shape = Sphere::new();
+        shape.set_transform(Matrix::translation(0.0, 0.0, 1.0));
+        let i = Intersection::new(5.0, shape);
+        let comps = i.prepare_computations(r);
+
+        assert!(comps.over_point.z < (-f64::EPSILON / 2.0));
+        assert!(comps.point.z > comps.over_point.z);
     }
 }

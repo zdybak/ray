@@ -30,6 +30,7 @@ impl Material {
         point: RayTuple,
         eyev: RayTuple,
         normalv: RayTuple,
+        in_shadow: bool,
     ) -> Color {
         //combine the surface color with the light's color/intensity
         let effective_color = self.color * light.intensity;
@@ -45,9 +46,10 @@ impl Material {
         //light is on the other side of the surface.
         let light_dot_normal = lightv.dot(normalv);
 
-        if light_dot_normal < 0.0 {
+        if light_dot_normal < 0.0 || in_shadow {
             //diffuse and specular are black, so no need to even add or return them
-            //we can simply return the ambient.
+            // OR if point is in shadow then we only use ambient
+            //we can simply return the ambient
             return ambient;
         } else {
             //compute the diffuse contribution
@@ -110,7 +112,7 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv);
+        let result = m.lighting(&light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.9, 1.9, 1.9));
     }
 
@@ -124,7 +126,7 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv);
+        let result = m.lighting(&light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.0, 1.0, 1.0));
     }
 
@@ -139,7 +141,7 @@ mod tests {
         let light =
             Light::point_light(RayTuple::point(0.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv);
+        let result = m.lighting(&light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(0.7364, 0.7364, 0.7364));
     }
 
@@ -154,7 +156,7 @@ mod tests {
         let light =
             Light::point_light(RayTuple::point(0.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv);
+        let result = m.lighting(&light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.6364, 1.6364, 1.6364));
     }
 
@@ -168,7 +170,20 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, 10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv);
+        let result = m.lighting(&light, position, eyev, normalv, false);
+        assert_eq!(result, Color::new(0.1, 0.1, 0.1));
+    }
+
+    #[test]
+    fn lighting_with_surface_in_shadow() {
+        let eyev = RayTuple::vector(0.0, 0.0, -1.0);
+        let normalv = RayTuple::vector(0.0, 0.0, -1.0);
+        let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
+        let in_shadow = true;
+        let m = Material::new();
+        let position = RayTuple::point(0.0, 0.0, 0.0);
+
+        let result = m.lighting(&light, position, eyev, normalv, in_shadow);
         assert_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 }

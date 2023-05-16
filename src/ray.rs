@@ -167,7 +167,10 @@ pub fn chapter_six_lighting() {
                     let point = r.position(inter.t);
                     let normal = inter.object.normal_at(point);
                     let eye = -r.direction;
-                    let color = inter.object.material.lighting(&light, point, eye, normal);
+                    let color = inter
+                        .object
+                        .material
+                        .lighting(&light, point, eye, normal, false);
                     canvas.write_pixel(x, y, color);
                 }
                 None => continue,
