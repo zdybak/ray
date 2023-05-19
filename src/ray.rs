@@ -6,7 +6,7 @@ use crate::light::Light;
 use crate::material::Material;
 use crate::matrix::Matrix;
 use crate::raytuple::RayTuple;
-use crate::sphere::Sphere;
+use crate::shape::{Shape, ShapeType};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -90,7 +90,7 @@ pub fn chapter_five_raysphere() {
     let canvas_pixels = 100;
     let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
     let color = Color::new(1.0, 0.0, 0.0);
-    let shape = Sphere::new();
+    let shape = Shape::new(ShapeType::Sphere);
 
     //test shape transforms NOTE: change let shape to a mutable Sphere for these.
     //shape.set_transform(Matrix::scaling(1.0, 0.5, 1.0));
@@ -134,7 +134,7 @@ pub fn chapter_six_lighting() {
     //let color = Color::new(1.0, 0.0, 0.0);
 
     //ch6 new: assign a material to the sphere
-    let mut shape = Sphere::new();
+    let mut shape = Shape::new(ShapeType::Sphere);
     shape.material = Material::new();
     shape.material.color = Color::new(1.0, 0.2, 1.0);
 

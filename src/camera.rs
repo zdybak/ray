@@ -6,7 +6,7 @@ use crate::color::Color;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
 use crate::raytuple::RayTuple;
-use crate::sphere::Sphere;
+use crate::shape::{Shape, ShapeType};
 use crate::world::World;
 
 #[derive(Debug)]
@@ -74,43 +74,39 @@ impl Camera {
 }
 
 pub fn chapter_seven_scene() {
-    let mut floor = Sphere::new();
-    floor.set_transform(Matrix::scaling(10.0, 0.01, 10.0));
+    let mut floor = Shape::new(ShapeType::Sphere);
+    floor.transform = Matrix::scaling(10.0, 0.01, 10.0);
     floor.material.color = Color::new(1.0, 0.9, 0.9);
     floor.material.specular = 0.0;
 
-    let mut left_wall = Sphere::new();
-    left_wall.set_transform(
-        Matrix::translation(0.0, 0.0, 5.0)
-            * Matrix::rotation_y(-FRAC_PI_4)
-            * Matrix::rotation_x(FRAC_PI_2)
-            * Matrix::scaling(10.0, 0.01, 10.0),
-    );
+    let mut left_wall = Shape::new(ShapeType::Sphere);
+    left_wall.transform = Matrix::translation(0.0, 0.0, 5.0)
+        * Matrix::rotation_y(-FRAC_PI_4)
+        * Matrix::rotation_x(FRAC_PI_2)
+        * Matrix::scaling(10.0, 0.01, 10.0);
     left_wall.material = floor.material;
 
-    let mut right_wall = Sphere::new();
-    right_wall.set_transform(
-        Matrix::translation(0.0, 0.0, 5.0)
-            * Matrix::rotation_y(FRAC_PI_4)
-            * Matrix::rotation_x(FRAC_PI_2)
-            * Matrix::scaling(10.0, 0.01, 10.0),
-    );
+    let mut right_wall = Shape::new(ShapeType::Sphere);
+    right_wall.transform = Matrix::translation(0.0, 0.0, 5.0)
+        * Matrix::rotation_y(FRAC_PI_4)
+        * Matrix::rotation_x(FRAC_PI_2)
+        * Matrix::scaling(10.0, 0.01, 10.0);
     right_wall.material = floor.material;
 
-    let mut middle = Sphere::new();
-    middle.set_transform(Matrix::translation(-0.5, 1.0, 0.5));
+    let mut middle = Shape::new(ShapeType::Sphere);
+    middle.transform = Matrix::translation(-0.5, 1.0, 0.5);
     middle.material.color = Color::new(0.1, 1.0, 0.5);
     middle.material.diffuse = 0.7;
     middle.material.specular = 0.3;
 
-    let mut right = Sphere::new();
-    right.set_transform(Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5));
+    let mut right = Shape::new(ShapeType::Sphere);
+    right.transform = Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5);
     right.material.color = Color::new(0.5, 1.0, 0.1);
     right.material.diffuse = 0.7;
     right.material.specular = 0.3;
 
-    let mut left = Sphere::new();
-    left.set_transform(Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33));
+    let mut left = Shape::new(ShapeType::Sphere);
+    left.transform = Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33);
     left.material.color = Color::new(1.0, 0.8, 0.1);
     left.material.diffuse = 0.7;
     left.material.specular = 0.3;
@@ -134,7 +130,7 @@ pub fn chapter_seven_scene() {
     );
 
     let canvas = c.render(w);
-    canvas.save_ppm("chapter7.ppm");
+    canvas.save_ppm("chapter8.ppm");
 }
 
 #[cfg(test)]

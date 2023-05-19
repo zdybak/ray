@@ -1,9 +1,9 @@
 use crate::raytuple::RayTuple;
-use crate::sphere::Sphere;
+use crate::shape::Shape;
 
 pub struct Computations {
     pub t: f64,
-    pub object: Sphere,
+    pub object: Shape,
     pub point: RayTuple,
     pub over_point: RayTuple,
     pub eyev: RayTuple,
@@ -14,7 +14,7 @@ pub struct Computations {
 impl Computations {
     pub fn new(
         t: f64,
-        object: Sphere,
+        object: Shape,
         point: RayTuple,
         over_point: RayTuple,
         eyev: RayTuple,

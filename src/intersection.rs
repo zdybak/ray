@@ -1,16 +1,16 @@
 #![allow(dead_code)]
 use crate::computations::Computations;
 use crate::ray::Ray;
-use crate::sphere::Sphere;
+use crate::shape::Shape;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Intersection {
     pub t: f64,
-    pub object: Sphere,
+    pub object: Shape,
 }
 
 impl Intersection {
-    pub fn new(t: f64, object: Sphere) -> Intersection {
+    pub fn new(t: f64, object: Shape) -> Intersection {
         Self { t, object }
     }
 
@@ -72,10 +72,11 @@ mod tests {
     use super::*;
     use crate::matrix::Matrix;
     use crate::raytuple::RayTuple;
+    use crate::shape::{Shape, ShapeType};
 
     #[test]
     fn intersection_encapsulates_time_and_object() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(3.5, s);
 
         assert_eq!(i.t, 3.5);
@@ -84,7 +85,7 @@ mod tests {
 
     #[test]
     fn aggregate_intersections() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i1 = Intersection::new(1.0, s);
         let i2 = Intersection::new(2.0, s);
         let xs = intersections!(i1, i2);
@@ -96,7 +97,7 @@ mod tests {
 
     #[test]
     fn hit_with_all_positives() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i1 = Intersection::new(1.0, s);
         let i2 = Intersection::new(2.0, s);
         let xs = intersections!(i2, i1);
@@ -107,7 +108,7 @@ mod tests {
 
     #[test]
     fn hit_with_some_negatives() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i1 = Intersection::new(-1.0, s);
         let i2 = Intersection::new(1.0, s);
         let xs = intersections!(i2, i1);
@@ -118,7 +119,7 @@ mod tests {
 
     #[test]
     fn hit_with_all_negatives() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i1 = Intersection::new(-2.0, s);
         let i2 = Intersection::new(-1.0, s);
         let xs = intersections!(i2, i1);
@@ -132,7 +133,7 @@ mod tests {
 
     #[test]
     fn hit_is_always_lowest_positive() {
-        let s = Sphere::new();
+        let s = Shape::new(ShapeType::Sphere);
         let i1 = Intersection::new(5.0, s);
         let i2 = Intersection::new(7.0, s);
         let i3 = Intersection::new(-3.0, s);
@@ -149,7 +150,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let shape = Sphere::new();
+        let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(4.0, shape);
         let comps = i.prepare_computations(r);
 
@@ -166,7 +167,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let shape = Sphere::new();
+        let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(4.0, shape);
         let comps = i.prepare_computations(r);
 
@@ -179,7 +180,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, 0.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let shape = Sphere::new();
+        let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(1.0, shape);
         let comps = i.prepare_computations(r);
 
@@ -195,8 +196,8 @@ mod tests {
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let mut shape = Sphere::new();
-        shape.set_transform(Matrix::translation(0.0, 0.0, 1.0));
+        let mut shape = Shape::new(ShapeType::Sphere);
+        shape.transform = Matrix::translation(0.0, 0.0, 1.0);
         let i = Intersection::new(5.0, shape);
         let comps = i.prepare_computations(r);
 

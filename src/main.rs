@@ -10,7 +10,7 @@ mod material;
 mod matrix;
 mod ray;
 mod raytuple;
-mod sphere;
+mod shape;
 mod world;
 
 fn main() {

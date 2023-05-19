@@ -6,12 +6,12 @@ use crate::light::Light;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
 use crate::raytuple::RayTuple;
-use crate::sphere::Sphere;
+use crate::shape::{Shape, ShapeType};
 use std::cmp::Ordering;
 
 pub struct World {
     pub light: Light,
-    pub objects: Vec<Sphere>,
+    pub objects: Vec<Shape>,
 }
 
 impl World {
@@ -26,13 +26,13 @@ impl World {
     }
 
     pub fn default_world() -> Self {
-        let mut s1 = Sphere::new();
+        let mut s1 = Shape::new(ShapeType::Sphere);
         s1.material.color = Color::new(0.8, 1.0, 0.6);
         s1.material.diffuse = 0.7;
         s1.material.specular = 0.2;
 
-        let mut s2 = Sphere::new();
-        s2.set_transform(Matrix::scaling(0.5, 0.5, 0.5));
+        let mut s2 = Shape::new(ShapeType::Sphere);
+        s2.transform = Matrix::scaling(0.5, 0.5, 0.5);
 
         Self {
             light: Light::point_light(
@@ -120,17 +120,17 @@ mod tests {
             RayTuple::point(-10.0, 10.0, -10.0),
             Color::new(1.0, 1.0, 1.0),
         );
-        let mut s1 = Sphere::new();
+        let mut s1 = Shape::new(ShapeType::Sphere);
         s1.material.color = Color::new(0.8, 1.0, 0.6);
         s1.material.diffuse = 0.7;
         s1.material.specular = 0.2;
-        let mut s2 = Sphere::new();
-        s2.set_transform(Matrix::scaling(0.5, 0.5, 0.5));
+        let mut s2 = Shape::new(ShapeType::Sphere);
+        s2.transform = Matrix::scaling(0.5, 0.5, 0.5);
         let w = World::default_world();
 
         assert_eq!(w.light, l);
         assert_eq!(w.objects[0].material, s1.material);
-        assert_eq!(w.objects[1].get_transform(), s2.get_transform());
+        assert_eq!(w.objects[1].transform, s2.transform);
     }
 
     #[test]
@@ -253,11 +253,11 @@ mod tests {
     fn shade_hit_is_given_intersection_in_shadow() {
         let mut w = World::new();
         w.light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
-        let s1 = Sphere::new();
+        let s1 = Shape::new(ShapeType::Sphere);
         w.objects.push(s1);
 
-        let mut s2 = Sphere::new();
-        s2.set_transform(Matrix::translation(0.0, 0.0, 10.0));
+        let mut s2 = Shape::new(ShapeType::Sphere);
+        s2.transform = Matrix::translation(0.0, 0.0, 10.0);
         w.objects.push(s2);
 
         let r = Ray::new(
