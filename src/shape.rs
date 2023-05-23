@@ -19,6 +19,7 @@ pub struct Shape {
     shape_type: ShapeType,
     pub transform: Matrix,
     pub material: Material,
+    pub saved_ray: Ray,
 }
 
 impl Shape {
@@ -28,6 +29,7 @@ impl Shape {
             shape_type,
             transform: Matrix::identity(),
             material: Material::new(),
+            saved_ray: Ray::new( RayTuple::point(3.0, 0.0, 0.0), RayTuple::vector(3.0, 0.0, 0.0) ),
         }
     }
 
@@ -37,6 +39,7 @@ impl Shape {
             shape_type: ShapeType::Test,
             transform: Matrix::identity(),
             material: Material::new(),
+            saved_ray: Ray::new( RayTuple::point(3.0, 0.0, 0.0), RayTuple::vector(3.0, 0.0, 0.0) ),
         }
     }
 
@@ -44,20 +47,19 @@ impl Shape {
         self.id
     }
 
-    pub fn intersect(self, r: Ray) -> Vec<Intersection> {
+    pub fn intersect(&mut self, r: Ray) -> Vec<Intersection> {
+        let mut intersections: Vec<Intersection> = Vec::new();
+        let local_inverse_transform = self.transform.inverse();
+        if let None = local_inverse_transform {
+            return intersections;
+        }
+        self.saved_ray = r.transform(local_inverse_transform.unwrap());
+
         match self.shape_type {
             ShapeType::Sphere => {
-                let mut intersections: Vec<Intersection> = Vec::new();
-
-                let sphere_inverse_transform = self.transform.inverse();
-                if let None = sphere_inverse_transform {
-                    return intersections;
-                }
-                let r = r.transform(sphere_inverse_transform.unwrap());
-
-                let sphere_to_ray = r.origin - RayTuple::point(0.0, 0.0, 0.0);
-                let a = r.direction.dot(r.direction);
-                let b = 2.0 * r.direction.dot(sphere_to_ray);
+                let sphere_to_ray = self.saved_ray.origin - RayTuple::point(0.0, 0.0, 0.0);
+                let a = self.saved_ray.direction.dot(self.saved_ray.direction);
+                let b = 2.0 * self.saved_ray.direction.dot(sphere_to_ray);
                 let c = sphere_to_ray.dot(sphere_to_ray) - 1.0;
 
                 let discriminant = b.powf(2.0) - 4.0 * a * c;
@@ -67,13 +69,13 @@ impl Shape {
 
                 let t1 = (-b - discriminant.sqrt()) / (2.0 * a);
                 let t2 = (-b + discriminant.sqrt()) / (2.0 * a);
-                intersections.push(Intersection::new(t1, self));
-                intersections.push(Intersection::new(t2, self));
+                intersections.push(Intersection::new(t1, *self));
+                intersections.push(Intersection::new(t2, *self));
 
                 intersections
             }
             ShapeType::Plane => Vec::new(),
-            ShapeType::Test => unreachable!("Call to intersect on Test Shape"),
+            ShapeType::Test => Vec::new(),
         }
     }
 
@@ -114,7 +116,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 2);
@@ -128,7 +130,7 @@ mod tests {
             RayTuple::point(0.0, 1.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 2);
@@ -142,7 +144,7 @@ mod tests {
             RayTuple::point(0.0, 2.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 0);
@@ -154,7 +156,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, 0.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 2);
@@ -168,7 +170,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, 5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 2);
@@ -182,7 +184,7 @@ mod tests {
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
         );
-        let s = Shape::new(ShapeType::Sphere);
+        let mut s = Shape::new(ShapeType::Sphere);
         let xs = s.intersect(r);
 
         assert_eq!(xs.len(), 2);
@@ -333,5 +335,27 @@ mod tests {
         m.ambient = 1.0;
         s.material = m;
         assert_eq!(s.material, m);
+    }
+
+    #[test]
+    fn intersecting_scaled_shape_with_ray() {
+        let r = Ray::new(RayTuple::point(0.0, 0.0, -5.0), RayTuple::vector(0.0,0.0,1.0));
+        let mut s = Shape::test_shape();
+        s.transform = Matrix::scaling(2.0, 2.0, 2.0);
+        let _xs = s.intersect(r);
+
+        assert_eq!(s.saved_ray.origin, RayTuple::point(0.0, 0.0, -2.5));
+        assert_eq!(s.saved_ray.direction, RayTuple::vector(0.0, 0.0, 0.5));
+    }
+
+    #[test]
+    fn intersecting_translated_shape_with_ray() {
+        let r = Ray::new(RayTuple::point(0.0, 0.0, -5.0), RayTuple::vector(0.0,0.0,1.0));
+        let mut s = Shape::test_shape();
+        s.transform = Matrix::translation(5.0, 0.0, 0.0);
+        let _xs = s.intersect(r);
+
+        assert_eq!(s.saved_ray.origin, RayTuple::point(-5.0, 0.0, -5.0));
+        assert_eq!(s.saved_ray.direction, RayTuple::vector(0.0, 0.0, 1.0));
     }
 }

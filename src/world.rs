@@ -43,10 +43,10 @@ impl World {
         }
     }
 
-    pub fn intersect_world(&self, r: Ray) -> Vec<Intersection> {
+    pub fn intersect_world(&mut self, r: Ray) -> Vec<Intersection> {
         let mut resulting_intersections: Vec<Intersection> = Vec::new();
 
-        for o in &self.objects {
+        for o in &mut self.objects {
             let mut xs = o.intersect(r);
             resulting_intersections.append(&mut xs);
         }
@@ -62,7 +62,7 @@ impl World {
         return resulting_intersections;
     }
 
-    pub fn shade_hit(&self, comps: Computations) -> Color {
+    pub fn shade_hit(&mut self, comps: Computations) -> Color {
         let shadowed = self.is_shadowed(comps.over_point);
 
         comps.object.material.lighting(
@@ -74,7 +74,7 @@ impl World {
         )
     }
 
-    pub fn color_at(&self, r: Ray) -> Color {
+    pub fn color_at(&mut self, r: Ray) -> Color {
         let xs = self.intersect_world(r);
         let option_hit = Intersection::hit(xs);
         if let Some(hit) = option_hit {
@@ -85,7 +85,7 @@ impl World {
         }
     }
 
-    pub fn is_shadowed(&self, p: RayTuple) -> bool {
+    pub fn is_shadowed(&mut self, p: RayTuple) -> bool {
         let v = self.light.position - p;
         let distance = v.magnitude();
         let direction = v.normalize();
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn intersect_world_with_ray() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let r = Ray::new(
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn shading_an_intersection() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let r = Ray::new(
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn color_when_ray_misses() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let r = Ray::new(
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 1.0, 0.0),
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn color_when_ray_hits() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let r = Ray::new(
             RayTuple::point(0.0, 0.0, -5.0),
             RayTuple::vector(0.0, 0.0, 1.0),
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn there_is_no_shadow() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let p = RayTuple::point(0.0, 10.0, 0.0);
 
         assert!(!w.is_shadowed(p));
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn there_is_shadow() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let p = RayTuple::point(10.0, -10.0, 10.0);
 
         assert!(w.is_shadowed(p));
@@ -235,7 +235,7 @@ mod tests {
 
     #[test]
     fn there_is_no_shadow_object_behind_light() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let p = RayTuple::point(-20.0, 20.0, -20.0);
 
         assert!(!w.is_shadowed(p));
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn there_is_no_shadow_point_infront() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let p = RayTuple::point(-2.0, 2.0, -2.0);
 
         assert!(!w.is_shadowed(p));

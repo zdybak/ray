@@ -90,7 +90,7 @@ pub fn chapter_five_raysphere() {
     let canvas_pixels = 100;
     let mut canvas = Canvas::new(canvas_pixels, canvas_pixels);
     let color = Color::new(1.0, 0.0, 0.0);
-    let shape = Shape::new(ShapeType::Sphere);
+    let mut shape = Shape::new(ShapeType::Sphere);
 
     //test shape transforms NOTE: change let shape to a mutable Sphere for these.
     //shape.set_transform(Matrix::scaling(1.0, 0.5, 1.0));
