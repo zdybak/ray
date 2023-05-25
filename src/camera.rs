@@ -6,7 +6,7 @@ use crate::color::Color;
 use crate::matrix::Matrix;
 use crate::ray::Ray;
 use crate::raytuple::RayTuple;
-use crate::shape::{Shape, ShapeType};
+use crate::shape::Shape;
 use crate::world::World;
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct Camera {
     hsize: i32,
     vsize: i32,
     field_of_view: f64,
-    transform: Matrix,
+    pub transform: Matrix,
     pixel_size: f64,
     half_width: f64,
     half_height: f64,
@@ -74,38 +74,38 @@ impl Camera {
 }
 
 pub fn chapter_seven_scene() {
-    let mut floor = Shape::new(ShapeType::Sphere);
+    let mut floor = Shape::sphere();
     floor.transform = Matrix::scaling(10.0, 0.01, 10.0);
     floor.material.color = Color::new(1.0, 0.9, 0.9);
     floor.material.specular = 0.0;
 
-    let mut left_wall = Shape::new(ShapeType::Sphere);
+    let mut left_wall = Shape::sphere();
     left_wall.transform = Matrix::translation(0.0, 0.0, 5.0)
         * Matrix::rotation_y(-FRAC_PI_4)
         * Matrix::rotation_x(FRAC_PI_2)
         * Matrix::scaling(10.0, 0.01, 10.0);
     left_wall.material = floor.material;
 
-    let mut right_wall = Shape::new(ShapeType::Sphere);
+    let mut right_wall = Shape::sphere();
     right_wall.transform = Matrix::translation(0.0, 0.0, 5.0)
         * Matrix::rotation_y(FRAC_PI_4)
         * Matrix::rotation_x(FRAC_PI_2)
         * Matrix::scaling(10.0, 0.01, 10.0);
     right_wall.material = floor.material;
 
-    let mut middle = Shape::new(ShapeType::Sphere);
+    let mut middle = Shape::sphere();
     middle.transform = Matrix::translation(-0.5, 1.0, 0.5);
     middle.material.color = Color::new(0.1, 1.0, 0.5);
     middle.material.diffuse = 0.7;
     middle.material.specular = 0.3;
 
-    let mut right = Shape::new(ShapeType::Sphere);
+    let mut right = Shape::sphere();
     right.transform = Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5);
     right.material.color = Color::new(0.5, 1.0, 0.1);
     right.material.diffuse = 0.7;
     right.material.specular = 0.3;
 
-    let mut left = Shape::new(ShapeType::Sphere);
+    let mut left = Shape::sphere();
     left.transform = Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33);
     left.material.color = Color::new(1.0, 0.8, 0.1);
     left.material.diffuse = 0.7;
