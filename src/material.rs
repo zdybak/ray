@@ -2,6 +2,7 @@
 
 use crate::color::Color;
 use crate::light::Light;
+use crate::pattern::Pattern;
 use crate::raytuple::RayTuple;
 
 #[derive(Debug, Clone, Copy)]
@@ -11,6 +12,7 @@ pub struct Material {
     pub diffuse: f64,
     pub specular: f64,
     pub shininess: f64,
+    pub pattern: Option<Pattern>,
 }
 
 impl Material {
@@ -21,6 +23,7 @@ impl Material {
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
+            pattern: None,
         }
     }
 
@@ -32,8 +35,13 @@ impl Material {
         normalv: RayTuple,
         in_shadow: bool,
     ) -> Color {
+        let pattern_color = match self.pattern {
+            Some(p) => p.stripe_at(point),
+            None => self.color,
+        };
+
         //combine the surface color with the light's color/intensity
-        let effective_color = self.color * light.intensity;
+        let effective_color = pattern_color * light.intensity;
 
         //find the direction to the light source
         let lightv = (light.position - point).normalize();
@@ -185,5 +193,25 @@ mod tests {
 
         let result = m.lighting(&light, position, eyev, normalv, in_shadow);
         assert_eq!(result, Color::new(0.1, 0.1, 0.1));
+    }
+
+    #[test]
+    fn lighting_with_pattern_applied() {
+        let mut m = Material::new();
+        m.pattern = Some(Pattern::stripe_pattern(
+            Color::new(1.0, 1.0, 1.0),
+            Color::new(0.0, 0.0, 0.0),
+        ));
+        m.ambient = 1.0;
+        m.diffuse = 0.0;
+        m.specular = 0.0;
+        let eyev = RayTuple::vector(0.0, 0.0, -1.0);
+        let normalv = RayTuple::vector(0.0, 0.0, -1.0);
+        let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
+        let c1 = m.lighting(&light, RayTuple::point(0.9, 0.0, 0.0), eyev, normalv, false);
+        let c2 = m.lighting(&light, RayTuple::point(1.1, 0.0, 0.0), eyev, normalv, false);
+
+        assert_eq!(c1, Color::new(1.0, 1.0, 1.0));
+        assert_eq!(c2, Color::new(0.0, 0.0, 0.0));
     }
 }

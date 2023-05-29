@@ -4,6 +4,7 @@ use crate::color::Color;
 use crate::intersection::Intersection;
 use crate::material::Material;
 use crate::matrix::Matrix;
+use crate::pattern::Pattern;
 use crate::ray::Ray;
 use crate::raytuple::RayTuple;
 use crate::world::World;
@@ -165,12 +166,20 @@ pub fn chapter_nine_plane() {
 
     let mut middle = Shape::sphere();
     middle.transform = Matrix::translation(-0.5, 1.0, 0.5);
+    middle.material.pattern = Some(Pattern::stripe_pattern(
+        Color::new(0.1, 1.0, 0.5),
+        Color::new(0.9, 0.0, 0.5),
+    ));
     middle.material.color = Color::new(0.1, 1.0, 0.5);
     middle.material.diffuse = 0.7;
     middle.material.specular = 0.3;
 
     let mut right = Shape::sphere();
     right.transform = Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5);
+    right.material.pattern = Some(Pattern::stripe_pattern(
+        Color::new(0.5, 1.0, 0.1),
+        Color::new(0.5, 0.0, 0.9),
+    ));
     right.material.color = Color::new(0.5, 1.0, 0.1);
     right.material.diffuse = 0.7;
     right.material.specular = 0.3;
@@ -190,7 +199,7 @@ pub fn chapter_nine_plane() {
     //800x600 after shadows in debug takes 400s
     //256x256 after shadows in release takes less than 5 seconds
     //2560x1440p in 235s in release
-    let mut c = Camera::new(2560, 1440, FRAC_PI_3);
+    let mut c = Camera::new(1920, 1080, FRAC_PI_3);
     c.transform = Matrix::view_transform(
         RayTuple::point(0.0, 1.5, -5.0),
         RayTuple::point(0.0, 1.0, 0.0),
