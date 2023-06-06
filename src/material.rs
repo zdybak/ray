@@ -4,6 +4,7 @@ use crate::color::Color;
 use crate::light::Light;
 use crate::pattern::Pattern;
 use crate::raytuple::RayTuple;
+use crate::shape::Shape;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Material {
@@ -29,6 +30,7 @@ impl Material {
 
     pub fn lighting(
         self,
+        shape: Shape,
         light: &Light,
         point: RayTuple,
         eyev: RayTuple,
@@ -36,7 +38,7 @@ impl Material {
         in_shadow: bool,
     ) -> Color {
         let pattern_color = match self.pattern {
-            Some(p) => p.stripe_at(point),
+            Some(p) => p.pattern_at_shape(shape, point),
             None => self.color,
         };
 
@@ -120,7 +122,7 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv, false);
+        let result = m.lighting(Shape::test_shape(), &light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.9, 1.9, 1.9));
     }
 
@@ -134,7 +136,7 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv, false);
+        let result = m.lighting(Shape::test_shape(), &light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.0, 1.0, 1.0));
     }
 
@@ -149,7 +151,7 @@ mod tests {
         let light =
             Light::point_light(RayTuple::point(0.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv, false);
+        let result = m.lighting(Shape::test_shape(), &light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(0.7364, 0.7364, 0.7364));
     }
 
@@ -164,7 +166,7 @@ mod tests {
         let light =
             Light::point_light(RayTuple::point(0.0, 10.0, -10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv, false);
+        let result = m.lighting(Shape::test_shape(), &light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(1.6364, 1.6364, 1.6364));
     }
 
@@ -178,7 +180,7 @@ mod tests {
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, 10.0), Color::new(1.0, 1.0, 1.0));
 
-        let result = m.lighting(&light, position, eyev, normalv, false);
+        let result = m.lighting(Shape::test_shape(), &light, position, eyev, normalv, false);
         assert_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 
@@ -191,7 +193,14 @@ mod tests {
         let m = Material::new();
         let position = RayTuple::point(0.0, 0.0, 0.0);
 
-        let result = m.lighting(&light, position, eyev, normalv, in_shadow);
+        let result = m.lighting(
+            Shape::test_shape(),
+            &light,
+            position,
+            eyev,
+            normalv,
+            in_shadow,
+        );
         assert_eq!(result, Color::new(0.1, 0.1, 0.1));
     }
 
@@ -208,8 +217,22 @@ mod tests {
         let eyev = RayTuple::vector(0.0, 0.0, -1.0);
         let normalv = RayTuple::vector(0.0, 0.0, -1.0);
         let light = Light::point_light(RayTuple::point(0.0, 0.0, -10.0), Color::new(1.0, 1.0, 1.0));
-        let c1 = m.lighting(&light, RayTuple::point(0.9, 0.0, 0.0), eyev, normalv, false);
-        let c2 = m.lighting(&light, RayTuple::point(1.1, 0.0, 0.0), eyev, normalv, false);
+        let c1 = m.lighting(
+            Shape::test_shape(),
+            &light,
+            RayTuple::point(0.9, 0.0, 0.0),
+            eyev,
+            normalv,
+            false,
+        );
+        let c2 = m.lighting(
+            Shape::test_shape(),
+            &light,
+            RayTuple::point(1.1, 0.0, 0.0),
+            eyev,
+            normalv,
+            false,
+        );
 
         assert_eq!(c1, Color::new(1.0, 1.0, 1.0));
         assert_eq!(c2, Color::new(0.0, 0.0, 0.0));
