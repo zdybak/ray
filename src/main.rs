@@ -17,7 +17,7 @@ mod world;
 fn main() {
     let start_time = Instant::now();
 
-    shape::chapter_nine_plane();
+    pattern::chapter_ten_patterns();
 
     let elapsed_time = start_time.elapsed();
     println!("Program completed in {:.2?}", elapsed_time);
