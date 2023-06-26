@@ -9,6 +9,7 @@ pub struct Computations {
     pub eyev: RayTuple,
     pub normalv: RayTuple,
     pub inside: bool,
+    pub reflectv: RayTuple,
 }
 
 impl Computations {
@@ -20,6 +21,7 @@ impl Computations {
         eyev: RayTuple,
         normalv: RayTuple,
         inside: bool,
+        reflectv: RayTuple,
     ) -> Self {
         Self {
             t,
@@ -29,6 +31,7 @@ impl Computations {
             eyev,
             normalv,
             inside,
+            reflectv,
         }
     }
 }

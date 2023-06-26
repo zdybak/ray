@@ -14,6 +14,7 @@ pub struct Material {
     pub specular: f64,
     pub shininess: f64,
     pub pattern: Option<Pattern>,
+    pub reflective: f64,
 }
 
 impl Material {
@@ -25,6 +26,7 @@ impl Material {
             specular: 0.9,
             shininess: 200.0,
             pattern: None,
+            reflective: 0.0,
         }
     }
 
@@ -97,7 +99,7 @@ impl PartialEq for Material {
 
 #[cfg(test)]
 mod tests {
-    use crate::{light::Light, raytuple::RayTuple};
+    use crate::{intersection::Intersection, light::Light, ray::Ray, raytuple::RayTuple};
 
     use super::*;
 
@@ -236,5 +238,27 @@ mod tests {
 
         assert_eq!(c1, Color::new(1.0, 1.0, 1.0));
         assert_eq!(c2, Color::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn reflectivity_for_default_material() {
+        let m = Material::new();
+        assert_eq!(m.reflective, 0.0);
+    }
+
+    #[test]
+    fn precompute_reflective_vector() {
+        let shape = Shape::plane();
+        let r = Ray::new(
+            RayTuple::point(0.0, 1.0, -1.0),
+            RayTuple::vector(0.0, -2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0),
+        );
+        let i = Intersection::new(2.0_f64.sqrt(), shape);
+        let comps = i.prepare_computations(r);
+
+        assert_eq!(
+            comps.reflectv,
+            RayTuple::vector(0.0, 2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0)
+        );
     }
 }

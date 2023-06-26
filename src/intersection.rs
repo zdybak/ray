@@ -43,8 +43,18 @@ impl Intersection {
             normalv = -normalv;
         }
         let over_point = p + normalv * 0.00001;
+        let reflectv = r.direction.reflect(normalv);
 
-        Computations::new(self.t, self.object, p, over_point, eyev, normalv, inside)
+        Computations::new(
+            self.t,
+            self.object,
+            p,
+            over_point,
+            eyev,
+            normalv,
+            inside,
+            reflectv,
+        )
     }
 }
 
