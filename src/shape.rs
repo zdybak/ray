@@ -113,11 +113,11 @@ impl Shape {
             }
             ShapeType::Plane => {
                 let epsilon: f64 = 0.00001;
-                if r.direction.y.abs() < epsilon {
+                if self.saved_ray.direction.y.abs() < epsilon {
                     return intersections;
                 }
 
-                let t = -r.origin.y / r.direction.y;
+                let t = -self.saved_ray.origin.y / self.saved_ray.direction.y;
 
                 intersections.push(Intersection::new(t, *self));
                 intersections

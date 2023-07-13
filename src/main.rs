@@ -17,8 +17,6 @@ mod world;
 fn main() {
     let start_time = Instant::now();
 
-    world::testing();
-
     let elapsed_time = start_time.elapsed();
     println!("Program completed in {:.2?}", elapsed_time);
 }

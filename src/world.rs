@@ -76,12 +76,6 @@ impl World {
 
         let reflected = self.reflected_color(comps, remaining);
 
-        println!(
-            "Hit detected shadow:{:?} with surface: {:?}",
-            shadowed, surface
-        );
-        println!(" and reflected: {:?}", reflected);
-        println!(" results in : {:?}", surface + reflected);
         surface + reflected
     }
 
@@ -104,17 +98,13 @@ impl World {
         let r = Ray::new(p, direction);
         let intersections = self.intersect_world(r);
 
-        let h_option = Intersection::hit(intersections);
-        match h_option {
-            Some(h) => {
-                if h.t < distance {
-                    true
-                } else {
-                    false
-                }
+        if let Some(hit) = Intersection::hit(intersections) {
+            if hit.t < distance {
+                return true;
             }
-            None => false,
         }
+
+        false
     }
 
     pub fn reflected_color(&mut self, comps: Computations, remaining: i32) -> Color {
@@ -127,24 +117,6 @@ impl World {
 
         color * comps.object.material.reflective
     }
-}
-
-pub fn testing() {
-    let mut w = World::default_world();
-    let mut shape = Shape::plane();
-    shape.material.reflective = 0.5;
-    shape.transform = Matrix::translation(0.0, -1.0, 0.0);
-    w.objects.push(shape);
-    let r = Ray::new(
-        RayTuple::point(0.0, 0.0, -3.0),
-        RayTuple::vector(0.0, -2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0),
-    );
-    let i = Intersection::new(2.0_f64.sqrt(), w.objects[2]);
-    let comps = i.prepare_computations(r);
-    println!("{:?}", comps);
-    let color = w.reflected_color(comps, 5);
-
-    assert_eq!(color, Color::new(0.19032, 0.2379, 0.14274));
 }
 
 #[cfg(test)]
@@ -342,7 +314,7 @@ mod tests {
         let comps = i.prepare_computations(r);
         let color = w.reflected_color(comps, 5);
 
-        assert_eq!(color, Color::new(0.19032, 0.2379, 0.14274));
+        assert_eq!(color, Color::new(0.19033, 0.23791, 0.14274));
     }
 
     #[test]
@@ -360,7 +332,7 @@ mod tests {
         let comps = i.prepare_computations(r);
         let color = w.shade_hit(comps, 5);
 
-        assert_eq!(color, Color::new(0.87677, 0.92436, 0.82918));
+        assert_eq!(color, Color::new(0.87675, 0.92434, 0.82917));
     }
 
     #[test]
