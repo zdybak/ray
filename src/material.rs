@@ -99,7 +99,7 @@ impl PartialEq for Material {
 
 #[cfg(test)]
 mod tests {
-    use crate::{intersection::Intersection, light::Light, ray::Ray, raytuple::RayTuple};
+    use crate::{light::Light, raytuple::RayTuple};
 
     use super::*;
 
@@ -245,5 +245,4 @@ mod tests {
         let m = Material::new();
         assert_eq!(m.reflective, 0.0);
     }
-
 }
