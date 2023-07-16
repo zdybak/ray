@@ -67,6 +67,14 @@ impl Shape {
         }
     }
 
+    pub fn glass_sphere() -> Self {
+        let mut s = Self::sphere();
+        s.material.transparency = 1.0;
+        s.material.refractive_index = 1.5;
+
+        s
+    }
+
     pub fn plane() -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -556,5 +564,14 @@ mod tests {
         assert_eq!(xs.len(), 1);
         assert_eq!(xs[0].t, 1.0);
         assert_eq!(xs[0].object, p);
+    }
+
+    #[test]
+    fn glass_sphere_test() {
+        let s = Shape::glass_sphere();
+
+        assert_eq!(s.transform, Matrix::identity());
+        assert_eq!(s.material.transparency, 1.0);
+        assert_eq!(s.material.refractive_index, 1.5);
     }
 }
