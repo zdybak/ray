@@ -33,7 +33,7 @@ impl Intersection {
         lowest_positive_i
     }
 
-    pub fn prepare_computations(self, r: Ray) -> Computations {
+    pub fn prepare_computations(self, r: Ray, xs: Vec<Intersection>) -> Computations {
         let p = r.position(self.t);
         let eyev = -r.direction;
         let mut normalv = self.object.normal_at(p);
@@ -45,6 +45,36 @@ impl Intersection {
         let over_point = p + normalv * 0.00001;
         let reflectv = r.direction.reflect(normalv);
 
+        let mut containers: Vec<Shape> = Vec::new();
+
+        let mut n1: f64 = 1.0;
+        let mut n2: f64 = 1.0;
+
+        for i in xs {
+            if self == i {
+                if containers.len() == 0 {
+                    n1 = 1.0;
+                } else {
+                    n1 = containers.last().unwrap().material.refractive_index;
+                }
+            }
+
+            if let Some(shape_index) = containers.iter().position(|&s| s == i.object) {
+                containers.remove(shape_index);
+            } else {
+                containers.push(i.object);
+            }
+
+            if self == i {
+                if containers.len() == 0 {
+                    n2 = 1.0;
+                } else {
+                    n2 = containers.last().unwrap().material.refractive_index;
+                }
+                break;
+            }
+        }
+
         Computations::new(
             self.t,
             self.object,
@@ -54,6 +84,8 @@ impl Intersection {
             normalv,
             inside,
             reflectv,
+            n1,
+            n2,
         )
     }
 }
@@ -162,7 +194,8 @@ mod tests {
         );
         let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(4.0, shape);
-        let comps = i.prepare_computations(r);
+        let xs: Vec<Intersection> = Vec::new();
+        let comps = i.prepare_computations(r, xs);
 
         assert_eq!(comps.t, i.t);
         assert_eq!(comps.object, i.object);
@@ -179,7 +212,8 @@ mod tests {
         );
         let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(4.0, shape);
-        let comps = i.prepare_computations(r);
+        let xs: Vec<Intersection> = Vec::new();
+        let comps = i.prepare_computations(r, xs);
 
         assert_eq!(comps.inside, false);
     }
@@ -192,7 +226,8 @@ mod tests {
         );
         let shape = Shape::new(ShapeType::Sphere);
         let i = Intersection::new(1.0, shape);
-        let comps = i.prepare_computations(r);
+        let xs: Vec<Intersection> = Vec::new();
+        let comps = i.prepare_computations(r, xs);
 
         assert_eq!(comps.point, RayTuple::point(0.0, 0.0, 1.0));
         assert_eq!(comps.eyev, RayTuple::vector(0.0, 0.0, -1.0));
@@ -209,7 +244,8 @@ mod tests {
         let mut shape = Shape::new(ShapeType::Sphere);
         shape.transform = Matrix::translation(0.0, 0.0, 1.0);
         let i = Intersection::new(5.0, shape);
-        let comps = i.prepare_computations(r);
+        let xs: Vec<Intersection> = Vec::new();
+        let comps = i.prepare_computations(r, xs);
 
         assert!(comps.over_point.z < (-f64::EPSILON / 2.0));
         assert!(comps.point.z > comps.over_point.z);
@@ -223,11 +259,70 @@ mod tests {
             RayTuple::vector(0.0, -2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0),
         );
         let i = Intersection::new(2.0_f64.sqrt(), shape);
-        let comps = i.prepare_computations(r);
+        let xs: Vec<Intersection> = Vec::new();
+        let comps = i.prepare_computations(r, xs);
 
         assert_eq!(
             comps.reflectv,
             RayTuple::vector(0.0, 2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0)
         );
+    }
+
+    #[test]
+    fn finding_n_at_various_intersections() {
+        let mut a = Shape::glass_sphere();
+        a.transform = Matrix::scaling(2.0, 2.0, 2.0);
+        a.material.refractive_index = 1.5;
+
+        let mut b = Shape::glass_sphere();
+        b.transform = Matrix::translation(0.0, 0.0, -0.25);
+        b.material.refractive_index = 2.0;
+
+        let mut c = Shape::glass_sphere();
+        c.transform = Matrix::translation(0.0, 0.0, 0.25);
+        c.material.refractive_index = 2.5;
+
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -4.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let xs1 = intersections!(
+            Intersection::new(2.0, a),
+            Intersection::new(2.75, b),
+            Intersection::new(3.25, c),
+            Intersection::new(4.75, b),
+            Intersection::new(5.25, c),
+            Intersection::new(6.0, a)
+        );
+
+        let xs2 = xs1.clone();
+        let xs3 = xs1.clone();
+        let xs4 = xs1.clone();
+        let xs5 = xs1.clone();
+        let xs6 = xs1.clone();
+
+        let comps1 = xs1[0].prepare_computations(r, xs1);
+        assert_eq!(comps1.n1, 1.0);
+        assert_eq!(comps1.n2, 1.5);
+
+        let comps2 = xs2[1].prepare_computations(r, xs2);
+        assert_eq!(comps2.n1, 1.5);
+        assert_eq!(comps2.n2, 2.0);
+
+        let comps3 = xs3[2].prepare_computations(r, xs3);
+        assert_eq!(comps3.n1, 2.0);
+        assert_eq!(comps3.n2, 2.5);
+
+        let comps4 = xs4[3].prepare_computations(r, xs4);
+        assert_eq!(comps4.n1, 2.5);
+        assert_eq!(comps4.n2, 2.5);
+
+        let comps5 = xs5[4].prepare_computations(r, xs5);
+        assert_eq!(comps5.n1, 2.5);
+        assert_eq!(comps5.n2, 1.5);
+
+        let comps6 = xs6[5].prepare_computations(r, xs6);
+        assert_eq!(comps6.n1, 1.5);
+        assert_eq!(comps6.n2, 1.0);
     }
 }
