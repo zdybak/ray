@@ -118,11 +118,20 @@ impl World {
 
         color * comps.object.material.reflective
     }
+
+    pub fn refracted_color(&self, comps: Computations, remaining: i32) -> Color {
+        if remaining == 0 || comps.object.material.transparency == 0.0 {
+            Color::new(0.0, 0.0, 0.0)
+        } else {
+            Color::new(1.0, 1.0, 1.0)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::intersections;
 
     //I've done some modifications to this test, since we are using UUID's in sphere initialization,
     //I only test to make sure the objects contain the non-default characteristics.
@@ -383,5 +392,37 @@ mod tests {
         let color = w.reflected_color(comps, 0);
 
         assert_eq!(color, Color::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn refracted_color_of_opaque_surface() {
+        let w = World::default_world();
+        let s = w.objects[0];
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let xs = intersections!(Intersection::new(4.0, s), Intersection::new(6.0, s));
+        let comps = xs[0].prepare_computations(r, xs);
+        let c = w.refracted_color(comps, 5);
+
+        assert_eq!(c, Color::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn refracted_color_at_maximum_recursive_depth() {
+        let mut w = World::default_world();
+        let s = &mut w.objects[0];
+        s.material.transparency = 1.0;
+        s.material.refractive_index = 1.5;
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let xs = intersections!(Intersection::new(4.0, *s), Intersection::new(6.0, *s));
+        let comps = xs[0].prepare_computations(r, xs);
+        let c = w.refracted_color(comps, 0);
+
+        assert_eq!(c, Color::new(0.0, 0.0, 0.0));
     }
 }

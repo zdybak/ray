@@ -13,6 +13,7 @@ pub struct Computations {
     pub reflectv: RayTuple,
     pub n1: f64,
     pub n2: f64,
+    pub under_point: RayTuple,
 }
 
 impl Computations {
@@ -27,6 +28,7 @@ impl Computations {
         reflectv: RayTuple,
         n1: f64,
         n2: f64,
+        under_point: RayTuple,
     ) -> Self {
         Self {
             t,
@@ -39,6 +41,7 @@ impl Computations {
             reflectv,
             n1,
             n2,
+            under_point,
         }
     }
 }

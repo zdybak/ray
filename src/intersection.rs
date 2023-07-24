@@ -43,6 +43,7 @@ impl Intersection {
             normalv = -normalv;
         }
         let over_point = p + normalv * 0.00001;
+        let under_point = p - normalv * 0.00001;
         let reflectv = r.direction.reflect(normalv);
 
         let mut containers: Vec<Shape> = Vec::new();
@@ -86,6 +87,7 @@ impl Intersection {
             reflectv,
             n1,
             n2,
+            under_point,
         )
     }
 }
@@ -324,5 +326,22 @@ mod tests {
         let comps6 = xs6[5].prepare_computations(r, xs6);
         assert_eq!(comps6.n1, 1.5);
         assert_eq!(comps6.n2, 1.0);
+    }
+
+    #[test]
+    fn underpoint_is_offset_below_surface() {
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -5.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let mut shape = Shape::glass_sphere();
+        shape.transform = Matrix::translation(0.0, 0.0, 1.0);
+        let i = Intersection::new(5.0, shape);
+        let xs = intersections!(i);
+
+        let comps = i.prepare_computations(r, xs);
+        let epsilon: f64 = 0.00001;
+        assert!(comps.under_point.z > epsilon / 2.0);
+        assert!(comps.point.z < comps.under_point.z);
     }
 }
