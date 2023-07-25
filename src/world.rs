@@ -120,7 +120,11 @@ impl World {
     }
 
     pub fn refracted_color(&self, comps: Computations, remaining: i32) -> Color {
-        if remaining == 0 || comps.object.material.transparency == 0.0 {
+        let n_ratio = comps.n1 / comps.n2;
+        let cos_i = comps.eyev.dot(comps.normalv);
+        let sin2_t = n_ratio.powf(2.0) * (1.0 - cos_i.powf(2.0));
+        
+        if remaining == 0 || comps.object.material.transparency == 0.0 || sin2_t > 1.0 {
             Color::new(0.0, 0.0, 0.0)
         } else {
             Color::new(1.0, 1.0, 1.0)
@@ -422,6 +426,28 @@ mod tests {
         let xs = intersections!(Intersection::new(4.0, *s), Intersection::new(6.0, *s));
         let comps = xs[0].prepare_computations(r, xs);
         let c = w.refracted_color(comps, 0);
+
+        assert_eq!(c, Color::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn refracted_color_under_total_internal_reflection() {
+        let mut w = World::default_world();
+        let s = &mut w.objects[0];
+        s.material.transparency = 1.0;
+        s.material.refractive_index = 1.5;
+
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 2.0_f64.sqrt() / 2.0),
+            RayTuple::vector(0.0, 1.0, 0.0),
+        );
+        let xs = intersections!(
+            Intersection::new(-2.0_f64.sqrt() / 2.0, *s),
+            Intersection::new(2.0_f64.sqrt() / 2.0, *s)
+        );
+
+        let comps = xs[1].prepare_computations(r, xs);
+        let c = w.refracted_color(comps, 5);
 
         assert_eq!(c, Color::new(0.0, 0.0, 0.0));
     }
