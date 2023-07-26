@@ -1,7 +1,7 @@
 use crate::raytuple::RayTuple;
 use crate::shape::Shape;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Computations {
     pub t: f64,
     pub object: Shape,

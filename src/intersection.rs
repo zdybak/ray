@@ -90,6 +90,25 @@ impl Intersection {
             under_point,
         )
     }
+
+    pub fn schlick(comps: Computations) -> f64 {
+        let mut cos = comps.eyev.dot(comps.normalv);
+
+        if comps.n1 > comps.n2 {
+            let n = comps.n1 / comps.n2;
+            let sin2_t = n.powf(2.0) * (1.0 - cos.powf(2.0));
+            if sin2_t > 1.0 {
+                return 1.0;
+            }
+
+            let cos_t = (1.0 - sin2_t).sqrt();
+            cos = cos_t;
+        }
+
+        let r0 = ((comps.n1 - comps.n2) / (comps.n1 + comps.n2)).powf(2.0);
+
+        r0 + (1.0 - r0) * (1.0 - cos).powf(5.0)
+    }
 }
 
 impl PartialEq for Intersection {
@@ -343,5 +362,53 @@ mod tests {
         let epsilon: f64 = 0.00001;
         assert!(comps.under_point.z > epsilon / 2.0);
         assert!(comps.point.z < comps.under_point.z);
+    }
+
+    #[test]
+    fn schlick_under_total_internal() {
+        let shape = Shape::glass_sphere();
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 2.0_f64.sqrt() / 2.0),
+            RayTuple::vector(0.0, 1.0, 0.0),
+        );
+        let xs = intersections!(
+            Intersection::new(-2.0_f64.sqrt() / 2.0, shape),
+            Intersection::new(2.0_f64.sqrt() / 2.0, shape)
+        );
+        let comps = xs[1].prepare_computations(r, xs);
+        let reflectance = Intersection::schlick(comps);
+
+        assert_eq!(reflectance, 1.0);
+    }
+
+    #[test]
+    fn schlick_with_perpindicular_viewing_angle() {
+        let shape = Shape::glass_sphere();
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 0.0),
+            RayTuple::vector(0.0, 1.0, 0.0),
+        );
+        let xs = intersections!(
+            Intersection::new(-1.0, shape),
+            Intersection::new(1.0, shape)
+        );
+        let comps = xs[1].prepare_computations(r, xs);
+        let reflectance = Intersection::schlick(comps);
+
+        assert_eq!(reflectance, 0.04000000000000001);
+    }
+
+    #[test]
+    fn schlick_with_small_angle() {
+        let shape = Shape::glass_sphere();
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.99, -2.0),
+            RayTuple::vector(0.0, 0.0, 1.0),
+        );
+        let xs = intersections!(Intersection::new(1.8589, shape));
+        let comps = xs[0].prepare_computations(r, xs);
+        let reflectance = Intersection::schlick(comps);
+
+        assert_eq!(reflectance, 0.48873081012212183);
     }
 }

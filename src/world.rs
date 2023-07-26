@@ -75,8 +75,9 @@ impl World {
         );
 
         let reflected = self.reflected_color(comps, remaining);
+        let refracted = self.refracted_color(comps, remaining);
 
-        surface + reflected
+        surface + reflected + refracted
     }
 
     pub fn color_at(&mut self, r: Ray, remaining: i32) -> Color {
@@ -119,15 +120,21 @@ impl World {
         color * comps.object.material.reflective
     }
 
-    pub fn refracted_color(&self, comps: Computations, remaining: i32) -> Color {
+    pub fn refracted_color(&mut self, comps: Computations, remaining: i32) -> Color {
         let n_ratio = comps.n1 / comps.n2;
         let cos_i = comps.eyev.dot(comps.normalv);
         let sin2_t = n_ratio.powf(2.0) * (1.0 - cos_i.powf(2.0));
-        
+
         if remaining == 0 || comps.object.material.transparency == 0.0 || sin2_t > 1.0 {
             Color::new(0.0, 0.0, 0.0)
         } else {
-            Color::new(1.0, 1.0, 1.0)
+            let cos_t = (1.0_f64 - sin2_t).sqrt();
+            let direction = comps.normalv * (n_ratio * cos_i - cos_t) - comps.eyev * n_ratio;
+            let refract_ray = Ray::new(comps.under_point, direction);
+
+            let color =
+                self.color_at(refract_ray, remaining - 1) * comps.object.material.transparency;
+            color
         }
     }
 }
@@ -135,7 +142,7 @@ impl World {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::intersections;
+    use crate::{intersections, pattern::Pattern};
 
     //I've done some modifications to this test, since we are using UUID's in sphere initialization,
     //I only test to make sure the objects contain the non-default characteristics.
@@ -400,7 +407,7 @@ mod tests {
 
     #[test]
     fn refracted_color_of_opaque_surface() {
-        let w = World::default_world();
+        let mut w = World::default_world();
         let s = w.objects[0];
         let r = Ray::new(
             RayTuple::point(0.0, 0.0, -5.0),
@@ -450,5 +457,59 @@ mod tests {
         let c = w.refracted_color(comps, 5);
 
         assert_eq!(c, Color::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn refracted_color_with_refracted_ray() {
+        let mut w = World::default_world();
+
+        w.objects[0].material.ambient = 1.0;
+        w.objects[0].material.pattern = Some(Pattern::test_pattern());
+
+        w.objects[1].material.transparency = 1.0;
+        w.objects[1].material.refractive_index = 1.5;
+
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, 0.1),
+            RayTuple::vector(0.0, 1.0, 0.0),
+        );
+        let xs = intersections!(
+            Intersection::new(-0.9899, w.objects[0]),
+            Intersection::new(-0.4899, w.objects[1]),
+            Intersection::new(0.4899, w.objects[1]),
+            Intersection::new(0.9899, w.objects[0])
+        );
+        let comps = xs[2].prepare_computations(r, xs);
+        let c = w.refracted_color(comps, 5);
+
+        //colors slightly adjusted for rounded book values
+        assert_eq!(c, Color::new(0.0, 0.99887, 0.04721));
+    }
+
+    #[test]
+    fn shade_hit_with_transparent_material() {
+        let mut w = World::default_world();
+        let mut floor = Shape::plane();
+        floor.transform = Matrix::translation(0.0, -1.0, 0.0);
+        floor.material.transparency = 0.5;
+        floor.material.refractive_index = 1.5;
+        w.objects.push(floor);
+
+        let mut ball = Shape::sphere();
+        ball.material.color = Color::new(1.0, 0.0, 0.0);
+        ball.material.ambient = 0.5;
+        ball.transform = Matrix::translation(0.0, -3.5, -0.5);
+        w.objects.push(ball);
+
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -3.0),
+            RayTuple::vector(0.0, -2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0),
+        );
+        let xs = intersections!(Intersection::new(2.0_f64.sqrt(), floor));
+
+        let comps = xs[0].prepare_computations(r, xs);
+        let color = w.shade_hit(comps, 5);
+
+        assert_eq!(color, Color::new(0.93642, 0.68642, 0.68642));
     }
 }
