@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::camera::Camera;
 use crate::color::Color;
 use crate::computations::Computations;
 use crate::intersection::Intersection;
@@ -8,6 +9,7 @@ use crate::ray::Ray;
 use crate::raytuple::RayTuple;
 use crate::shape::{Shape, ShapeType};
 use std::cmp::Ordering;
+use std::f64::consts::FRAC_PI_3;
 
 pub struct World {
     pub light: Light,
@@ -77,6 +79,12 @@ impl World {
         let reflected = self.reflected_color(comps, remaining);
         let refracted = self.refracted_color(comps, remaining);
 
+        let material = comps.object.material;
+        if material.reflective > 0.0 && material.transparency > 0.0 {
+            let reflectance = Intersection::schlick(comps);
+            return surface + reflected * reflectance + refracted * (1.0 - reflectance);
+        }
+
         surface + reflected + refracted
     }
 
@@ -136,6 +144,56 @@ impl World {
                 self.color_at(refract_ray, remaining - 1) * comps.object.material.transparency;
             color
         }
+    }
+
+    pub fn chapter_eleven_reflect() {
+        let mut floor = Shape::plane();
+        floor.material.color = Color::new(0.1, 0.1, 0.1);
+        floor.material.specular = 0.0;
+        floor.material.reflective = 0.3;
+
+        let mut middle = Shape::glass_sphere();
+        middle.transform = Matrix::translation(-0.5, 1.5, 0.5);
+        middle.material.color = Color::new(0.05, 0.05, 0.1);
+
+        let mut right = Shape::sphere();
+        right.transform = Matrix::translation(-0.5, 1.5, 3.0) * Matrix::scaling(0.5, 0.5, 0.5);
+        right.material.color = Color::new(1.0, 0.0, 0.0);
+        right.material.diffuse = 0.7;
+        right.material.specular = 0.3;
+
+        let mut left = Shape::sphere();
+        left.transform = Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33);
+        left.material.color = Color::new(0.1, 0.1, 0.9);
+        left.material.diffuse = 0.7;
+        left.material.specular = 0.3;
+
+        let mut backright = Shape::sphere();
+        backright.transform =
+            Matrix::translation(1.0, 1.0, 2.0) * Matrix::scaling(0.75, 0.75, 0.75);
+        backright.material.color = Color::new(1.0, 1.0, 1.0);
+        backright.material.diffuse = 0.7;
+        backright.material.specular = 0.3;
+        backright.material.reflective = 0.5;
+        backright.material.refractive_index = 1.1;
+
+        let mut w = World::new();
+        w.objects.push(floor);
+        w.objects.push(middle);
+        w.objects.push(left);
+        w.objects.push(right);
+        w.objects.push(backright);
+
+        //2560x1440p in 241s in release
+        let mut c = Camera::new(2560, 1440, FRAC_PI_3);
+        c.transform = Matrix::view_transform(
+            RayTuple::point(0.0, 1.5, -5.0),
+            RayTuple::point(0.0, 1.0, 0.0),
+            RayTuple::vector(0.0, 1.0, 0.0),
+        );
+
+        let canvas = c.render(w);
+        canvas.save_ppm("chapter11.ppm");
     }
 }
 
@@ -511,5 +569,33 @@ mod tests {
         let color = w.shade_hit(comps, 5);
 
         assert_eq!(color, Color::new(0.93642, 0.68642, 0.68642));
+    }
+
+    #[test]
+    fn shade_hit_with_reflective_transparent_material() {
+        let mut w = World::default_world();
+        let r = Ray::new(
+            RayTuple::point(0.0, 0.0, -3.0),
+            RayTuple::vector(0.0, -2.0_f64.sqrt() / 2.0, 2.0_f64.sqrt() / 2.0),
+        );
+
+        let mut floor = Shape::plane();
+        floor.transform = Matrix::translation(0.0, -1.0, 0.0);
+        floor.material.reflective = 0.5;
+        floor.material.transparency = 0.5;
+        floor.material.refractive_index = 1.5;
+        w.objects.push(floor);
+
+        let mut ball = Shape::sphere();
+        ball.material.color = Color::new(1.0, 0.0, 0.0);
+        ball.material.ambient = 0.5;
+        ball.transform = Matrix::translation(0.0, -3.5, -0.5);
+        w.objects.push(ball);
+
+        let xs = intersections!(Intersection::new(2.0_f64.sqrt(), floor));
+        let comps = xs[0].prepare_computations(r, xs);
+        let color = w.shade_hit(comps, 5);
+
+        assert_eq!(color, Color::new(0.93391, 0.69643, 0.69243));
     }
 }
