@@ -146,7 +146,7 @@ impl World {
         }
     }
 
-    pub fn chapter_eleven_reflect() {
+    pub fn chapter_twelve_cube() {
         let mut floor = Shape::plane();
         floor.material.color = Color::new(0.1, 0.1, 0.1);
         floor.material.specular = 0.0;
@@ -177,12 +177,22 @@ impl World {
         backright.material.reflective = 0.5;
         backright.material.refractive_index = 1.1;
 
+        let mut frontright = Shape::cube();
+        frontright.transform =
+            Matrix::translation(2.0, 0.5, 0.0) * Matrix::scaling(0.1,0.1,0.1) * Matrix::rotation_y(2.0_f64.sqrt() / 2.0);
+        frontright.material.color = Color::new(0.3, 0.8, 0.2);
+        frontright.material.diffuse = 0.7;
+        frontright.material.specular = 0.3;
+        frontright.material.reflective = 0.8;
+        frontright.material.refractive_index = 1.5;
+
         let mut w = World::new();
         w.objects.push(floor);
         w.objects.push(middle);
         w.objects.push(left);
         w.objects.push(right);
         w.objects.push(backright);
+        w.objects.push(frontright);
 
         //2560x1440p in 241s in release
         let mut c = Camera::new(2560, 1440, FRAC_PI_3);
@@ -193,7 +203,7 @@ impl World {
         );
 
         let canvas = c.render(w);
-        canvas.save_ppm("chapter11.ppm");
+        canvas.save_ppm("chapter12.ppm");
     }
 }
 

@@ -19,7 +19,7 @@ mod world;
 fn main() {
     let start_time = Instant::now();
 
-    World::chapter_eleven_reflect();
+    World::chapter_twelve_cube();
 
     let elapsed_time = start_time.elapsed();
     println!("Program completed in {:.2?}", elapsed_time);
