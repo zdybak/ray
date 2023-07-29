@@ -16,6 +16,7 @@ pub enum ShapeType {
     Sphere,
     Plane,
     Test,
+    Cube,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -88,6 +89,19 @@ impl Shape {
         }
     }
 
+    pub fn cube() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            shape_type: ShapeType::Cube,
+            transform: Matrix::identity(),
+            material: Material::new(),
+            saved_ray: Ray::new(
+                RayTuple::point(0.0, 0.0, 0.0),
+                RayTuple::vector(0.0, 0.0, 0.0),
+            ),
+        }
+    }
+
     pub fn id(self) -> Uuid {
         self.id
     }
@@ -131,6 +145,50 @@ impl Shape {
                 intersections
             }
             ShapeType::Test => intersections,
+            ShapeType::Cube => {
+                //because cube is using the transformed ray, I think we might run into issues because we aren't doing local intersect technically?
+                let xaxis: (f64, f64) =
+                    Self::check_axis(self.saved_ray.origin.x, self.saved_ray.direction.x);
+                let yaxis: (f64, f64) =
+                    Self::check_axis(self.saved_ray.origin.y, self.saved_ray.direction.y);
+                let zaxis: (f64, f64) =
+                    Self::check_axis(self.saved_ray.origin.z, self.saved_ray.direction.z);
+
+                let tmin = if xaxis.0 > yaxis.0 {
+                    if xaxis.0 > zaxis.0 {
+                        xaxis.0
+                    } else {
+                        zaxis.0
+                    }
+                } else {
+                    if yaxis.0 > zaxis.0 {
+                        yaxis.0
+                    } else {
+                        zaxis.0
+                    }
+                };
+                let tmax = if xaxis.1 < yaxis.1 {
+                    if xaxis.1 < zaxis.1 {
+                        xaxis.1
+                    } else {
+                        zaxis.1
+                    }
+                } else {
+                    if yaxis.1 < zaxis.1 {
+                        yaxis.1
+                    } else {
+                        zaxis.1
+                    }
+                };
+
+                if tmin > tmax {
+                    return intersections;
+                }
+
+                intersections.push(Intersection::new(tmin, *self));
+                intersections.push(Intersection::new(tmax, *self));
+                intersections
+            }
         }
     }
 
@@ -154,6 +212,47 @@ impl Shape {
 
                 world_normal.normalize()
             }
+            ShapeType::Cube => {
+                let x_abs = object_point.x.abs();
+                let y_abs = object_point.y.abs();
+                let z_abs = object_point.z.abs();
+
+                if x_abs >= y_abs {
+                    if x_abs >= z_abs {
+                        RayTuple::vector(object_point.x, 0.0, 0.0)
+                    } else {
+                        RayTuple::vector(0.0, 0.0, object_point.z)
+                    }
+                } else {
+                    if y_abs >= z_abs {
+                        RayTuple::vector(0.0, object_point.y, 0.0)
+                    } else {
+                        RayTuple::vector(0.0, 0.0, object_point.z)
+                    }
+                }
+            }
+        }
+    }
+
+    fn check_axis(origin: f64, direction: f64) -> (f64, f64) {
+        let epsilon: f64 = 0.00001;
+        let tmin_numerator = -1.0 - origin;
+        let tmax_numerator = 1.0 - origin;
+        let tmin: f64;
+        let tmax: f64;
+
+        if direction.abs() >= epsilon {
+            tmin = tmin_numerator / direction;
+            tmax = tmax_numerator / direction;
+        } else {
+            tmin = tmin_numerator * f64::INFINITY;
+            tmax = tmax_numerator * f64::INFINITY;
+        }
+
+        if tmin > tmax {
+            (tmax, tmin)
+        } else {
+            (tmin, tmax)
         }
     }
 }
@@ -573,5 +672,150 @@ mod tests {
         assert_eq!(s.transform, Matrix::identity());
         assert_eq!(s.material.transparency, 1.0);
         assert_eq!(s.material.refractive_index, 1.5);
+    }
+
+    #[test]
+    fn ray_intersects_cube() {
+        let mut c = Shape::cube();
+
+        let test_tuples: Vec<(RayTuple, RayTuple, f64, f64)> = vec![
+            (
+                RayTuple::point(5.0, 0.5, 0.0),
+                RayTuple::vector(-1.0, 0.0, 0.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(-5.0, 0.5, 0.0),
+                RayTuple::vector(1.0, 0.0, 0.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.5, 5.0, 0.0),
+                RayTuple::vector(0.0, -1.0, 0.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.5, -5.0, 0.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.5, 0.0, 5.0),
+                RayTuple::vector(0.0, 0.0, -1.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.5, 0.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.0, 0.5, 0.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                -1.0,
+                1.0,
+            ),
+        ];
+
+        for test in test_tuples {
+            let r = Ray::new(test.0, test.1);
+            let xs: Vec<Intersection> = c.intersect(r);
+
+            assert_eq!(xs.len(), 2);
+            assert_eq!(xs[0].t, test.2);
+            assert_eq!(xs[1].t, test.3);
+        }
+    }
+
+    #[test]
+    fn ray_misses_cube() {
+        let mut c = Shape::cube();
+
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(-2.0, 0.0, 0.0),
+                RayTuple::vector(0.2673, 0.5345, 0.8018),
+            ),
+            (
+                RayTuple::point(0.0, -2.0, 0.0),
+                RayTuple::vector(0.8018, 0.2673, 0.5345),
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -2.0),
+                RayTuple::vector(0.5345, 0.8018, 0.2673),
+            ),
+            (
+                RayTuple::point(2.0, 0.0, 2.0),
+                RayTuple::vector(0.0, 0.0, -1.0),
+            ),
+            (
+                RayTuple::point(0.0, 2.0, 2.0),
+                RayTuple::vector(0.0, -1.0, 0.0),
+            ),
+            (
+                RayTuple::point(2.0, 2.0, 0.0),
+                RayTuple::vector(-1.0, 0.0, 0.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let r = Ray::new(test.0, test.1);
+            let xs: Vec<Intersection> = c.intersect(r);
+
+            assert_eq!(xs.len(), 0);
+        }
+    }
+
+    #[test]
+    fn normal_on_surface_of_cube() {
+        let c = Shape::cube();
+
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(1.0, 0.5, -0.8),
+                RayTuple::vector(1.0, 0.0, 0.0),
+            ),
+            (
+                RayTuple::point(-1.0, -0.2, 0.9),
+                RayTuple::vector(-1.0, 0.0, 0.0),
+            ),
+            (
+                RayTuple::point(-0.4, 1.0, -0.1),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.3, -1.0, -0.7),
+                RayTuple::vector(0.0, -1.0, 0.0),
+            ),
+            (
+                RayTuple::point(-0.6, 0.3, 1.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+            ),
+            (
+                RayTuple::point(0.4, 0.4, -1.0),
+                RayTuple::vector(0.0, 0.0, -1.0),
+            ),
+            (
+                RayTuple::point(1.0, 1.0, 1.0),
+                RayTuple::vector(1.0, 0.0, 0.0),
+            ),
+            (
+                RayTuple::point(-1.0, -1.0, -1.0),
+                RayTuple::vector(-1.0, 0.0, 0.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let p = test.0;
+            let normal = c.normal_at(p);
+
+            assert_eq!(normal, test.1);
+        }
     }
 }
