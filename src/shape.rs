@@ -17,6 +17,7 @@ pub enum ShapeType {
     Plane,
     Test,
     Cube,
+    Cylinder,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -93,6 +94,19 @@ impl Shape {
         Self {
             id: Uuid::new_v4(),
             shape_type: ShapeType::Cube,
+            transform: Matrix::identity(),
+            material: Material::new(),
+            saved_ray: Ray::new(
+                RayTuple::point(0.0, 0.0, 0.0),
+                RayTuple::vector(0.0, 0.0, 0.0),
+            ),
+        }
+    }
+
+    pub fn cylinder() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            shape_type: ShapeType::Cylinder,
             transform: Matrix::identity(),
             material: Material::new(),
             saved_ray: Ray::new(
@@ -189,6 +203,30 @@ impl Shape {
                 intersections.push(Intersection::new(tmax, *self));
                 intersections
             }
+            ShapeType::Cylinder => {
+                let epsilon: f64 = 0.00001;
+                let a = self.saved_ray.direction.x.powf(2.0) + self.saved_ray.direction.z.powf(2.0);
+
+                if a <= epsilon {
+                    return intersections;
+                }
+
+                let b = 2.0 * self.saved_ray.origin.x * self.saved_ray.direction.x
+                    + 2.0 * self.saved_ray.origin.z * self.saved_ray.direction.z;
+                let c = self.saved_ray.origin.x.powf(2.0) + self.saved_ray.origin.z.powf(2.0) - 1.0;
+
+                let disc = b.powf(2.0) - 4.0 * a * c;
+
+                if disc < 0.0 {
+                    return intersections;
+                } else {
+                    let t0 = (-b - disc.sqrt()) / (2.0 * a);
+                    let t1 = (-b + disc.sqrt()) / (2.0 * a);
+                    intersections.push(Intersection::new(t0, *self));
+                    intersections.push(Intersection::new(t1, *self));
+                    intersections
+                }
+            }
         }
     }
 
@@ -231,6 +269,7 @@ impl Shape {
                     }
                 }
             }
+            ShapeType::Cylinder => RayTuple::vector(object_point.x, 0.0, object_point.z),
         }
     }
 
@@ -816,6 +855,99 @@ mod tests {
             let normal = c.normal_at(p);
 
             assert_eq!(normal, test.1);
+        }
+    }
+
+    #[test]
+    fn ray_misses_cylinder() {
+        let mut cyl = Shape::cylinder();
+
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(1.0, 0.0, 0.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 0.0, 0.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(1.0, 1.0, 1.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = cyl.intersect(r);
+
+            assert_eq!(xs.len(), 0);
+        }
+    }
+
+    #[test]
+    fn ray_hits_cylinder() {
+        let mut cyl = Shape::cylinder();
+
+        let test_tuples: Vec<(RayTuple, RayTuple, f64, f64)> = vec![
+            (
+                RayTuple::point(1.0, 0.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                5.0,
+                5.0,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                4.0,
+                6.0,
+            ),
+            (
+                RayTuple::point(0.5, 0.0, -5.0),
+                RayTuple::vector(0.1, 1.0, 1.0),
+                6.80798191702732,
+                7.088723439378861,
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = cyl.intersect(r);
+
+            assert_eq!(xs[0].t, test.2);
+            assert_eq!(xs[1].t, test.3);
+        }
+    }
+
+    #[test]
+    fn normal_of_cylinder() {
+        let cyl = Shape::cylinder();
+
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(1.0, 0.0, 0.0),
+                RayTuple::vector(1.0, 0.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 5.0, -1.0),
+                RayTuple::vector(0.0, 0.0, -1.0),
+            ),
+            (
+                RayTuple::point(0.0, -2.0, 1.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+            ),
+            (
+                RayTuple::point(-1.0, 1.0, 0.0),
+                RayTuple::vector(-1.0, 0.0, 0.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let n = cyl.normal_at(test.0);
+
+            assert_eq!(n, test.1);
         }
     }
 }

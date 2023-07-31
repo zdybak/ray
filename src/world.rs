@@ -178,8 +178,9 @@ impl World {
         backright.material.refractive_index = 1.1;
 
         let mut frontright = Shape::cube();
-        frontright.transform =
-            Matrix::translation(2.0, 0.5, 0.0) * Matrix::scaling(0.1,0.1,0.1) * Matrix::rotation_y(2.0_f64.sqrt() / 2.0);
+        frontright.transform = Matrix::translation(2.0, 0.5, 0.0)
+            * Matrix::scaling(0.1, 0.1, 0.1)
+            * Matrix::rotation_y(2.0_f64.sqrt() / 2.0);
         frontright.material.color = Color::new(0.3, 0.8, 0.2);
         frontright.material.diffuse = 0.7;
         frontright.material.specular = 0.3;
