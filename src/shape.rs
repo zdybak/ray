@@ -27,6 +27,8 @@ pub struct Shape {
     pub transform: Matrix,
     pub material: Material,
     pub saved_ray: Ray,
+    pub minimum: f64,
+    pub maximum: f64,
 }
 
 impl Shape {
@@ -40,6 +42,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -53,6 +57,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -66,6 +72,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -87,6 +95,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -100,6 +110,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -113,6 +125,8 @@ impl Shape {
                 RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
         }
     }
 
@@ -220,10 +234,23 @@ impl Shape {
                 if disc < 0.0 {
                     return intersections;
                 } else {
-                    let t0 = (-b - disc.sqrt()) / (2.0 * a);
-                    let t1 = (-b + disc.sqrt()) / (2.0 * a);
-                    intersections.push(Intersection::new(t0, *self));
-                    intersections.push(Intersection::new(t1, *self));
+                    let mut t0 = (-b - disc.sqrt()) / (2.0 * a);
+                    let mut t1 = (-b + disc.sqrt()) / (2.0 * a);
+
+                    if t0 > t1 {
+                        (t0, t1) = (t1, t0);
+                    }
+
+                    let y0 = self.saved_ray.origin.y + t0 * self.saved_ray.direction.y;
+                    if self.minimum < y0 && y0 < self.maximum {
+                        intersections.push(Intersection::new(t0, *self));
+                    }
+
+                    let y1 = self.saved_ray.origin.y + t1 * self.saved_ray.direction.y;
+                    if self.minimum < y1 && y1 < self.maximum {
+                        intersections.push(Intersection::new(t1, *self));
+                    }
+
                     intersections
                 }
             }
@@ -948,6 +975,62 @@ mod tests {
             let n = cyl.normal_at(test.0);
 
             assert_eq!(n, test.1);
+        }
+    }
+
+    #[test]
+    fn default_min_and_max_of_cylinder() {
+        let cyl = Shape::cylinder();
+
+        assert_eq!(cyl.minimum, f64::NEG_INFINITY);
+        assert_eq!(cyl.maximum, f64::INFINITY);
+    }
+
+    #[test]
+    fn intersecting_constrained_cylinder() {
+        let mut cyl = Shape::cylinder();
+        cyl.minimum = 1.0;
+        cyl.maximum = 2.0;
+
+        let test_tuples: Vec<(RayTuple, RayTuple, usize)> = vec![
+            (
+                RayTuple::point(0.0, 1.5, 0.0),
+                RayTuple::vector(0.1, 1.0, 0.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 3.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 2.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 1.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 1.5, -2.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                2,
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = cyl.intersect(r);
+
+            assert_eq!(xs.len(), test.2);
         }
     }
 }
