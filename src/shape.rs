@@ -29,6 +29,7 @@ pub struct Shape {
     pub saved_ray: Ray,
     pub minimum: f64,
     pub maximum: f64,
+    pub closed: bool,
 }
 
 impl Shape {
@@ -44,6 +45,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -59,6 +61,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -74,6 +77,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -97,6 +101,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -112,6 +117,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -127,6 +133,7 @@ impl Shape {
             ),
             minimum: f64::NEG_INFINITY,
             maximum: f64::INFINITY,
+            closed: false,
         }
     }
 
@@ -174,7 +181,6 @@ impl Shape {
             }
             ShapeType::Test => intersections,
             ShapeType::Cube => {
-                //because cube is using the transformed ray, I think we might run into issues because we aren't doing local intersect technically?
                 let xaxis: (f64, f64) =
                     Self::check_axis(self.saved_ray.origin.x, self.saved_ray.direction.x);
                 let yaxis: (f64, f64) =
@@ -222,6 +228,7 @@ impl Shape {
                 let a = self.saved_ray.direction.x.powf(2.0) + self.saved_ray.direction.z.powf(2.0);
 
                 if a <= epsilon {
+                    Self::intersect_caps(&self, self.saved_ray, &mut intersections);
                     return intersections;
                 }
 
@@ -251,6 +258,7 @@ impl Shape {
                         intersections.push(Intersection::new(t1, *self));
                     }
 
+                    Self::intersect_caps(&self, self.saved_ray, &mut intersections);
                     intersections
                 }
             }
@@ -296,7 +304,19 @@ impl Shape {
                     }
                 }
             }
-            ShapeType::Cylinder => RayTuple::vector(object_point.x, 0.0, object_point.z),
+            ShapeType::Cylinder => {
+                let epsilon: f64 = 0.00001;
+                let dist = object_point.x.powf(2.0) + object_point.z.powf(2.0);
+                
+                if dist < 1.0 && object_point.y >= self.maximum - epsilon {
+                    return RayTuple::vector(0.0, 1.0, 0.0);
+                } else if dist < 1.0 && object_point.y <= self.minimum + epsilon {
+                    return RayTuple::vector(0.0, -1.0, 0.0);
+                } else {
+                    return RayTuple::vector(object_point.x, 0.0, object_point.z);
+                }
+
+            }
         }
     }
 
@@ -319,6 +339,30 @@ impl Shape {
             (tmax, tmin)
         } else {
             (tmin, tmax)
+        }
+    }
+
+    fn check_cap(ray: Ray, t: f64) -> bool {
+        let x = ray.origin.x + t * ray.direction.x;
+        let z = ray.origin.z + t * ray.direction.z;
+
+        (x.powf(2.0) + z.powf(2.0)) <= 1.0
+    }
+
+    fn intersect_caps(&self, ray: Ray, xs: &mut Vec<Intersection>) {
+        let epsilon: f64 = 0.00001;
+        if !self.closed || ray.direction.y.abs() <= epsilon {
+            return;
+        }
+
+        let t = (self.minimum - ray.origin.y) / ray.direction.y;
+        if Self::check_cap(ray, t) {
+            xs.push(Intersection::new(t, *self));
+        }
+
+        let t = (self.maximum - ray.origin.y) / ray.direction.y;
+        if Self::check_cap(ray, t) {
+            xs.push(Intersection::new(t, *self));
         }
     }
 }
@@ -1031,6 +1075,98 @@ mod tests {
             let xs = cyl.intersect(r);
 
             assert_eq!(xs.len(), test.2);
+        }
+    }
+
+    #[test]
+    fn default_closed_cylinder() {
+        let cyl = Shape::cylinder();
+
+        assert!(cyl.closed == false);
+    }
+
+    #[test]
+    fn intersecting_closed_cylinder() {
+        let mut cyl = Shape::cylinder();
+        cyl.minimum = 1.0;
+        cyl.maximum = 2.0;
+        cyl.closed = true;
+
+        let test_tuples: Vec<(RayTuple, RayTuple, usize)> = vec![
+            (
+                RayTuple::point(0.0, 3.0, 0.0),
+                RayTuple::vector(0.0, -1.0, 0.0),
+                2,
+            ),
+            (
+                RayTuple::point(0.0, 3.0, -2.0),
+                RayTuple::vector(0.0, -1.0, 2.0),
+                2,
+            ),
+            (
+                RayTuple::point(0.0, 4.0, -2.0),
+                RayTuple::vector(0.0, -1.0, 1.0),
+                2,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -2.0),
+                RayTuple::vector(0.0, 1.0, 2.0),
+                2,
+            ),
+            (
+                RayTuple::point(0.0, -1.0, -2.0),
+                RayTuple::vector(0.0, 1.0, 1.0),
+                2,
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = cyl.intersect(r);
+
+            assert_eq!(xs.len(), test.2);
+        }
+    }
+
+    #[test]
+    fn normal_on_cylinder_caps() {
+        let mut cyl = Shape::cylinder();
+        cyl.minimum = 1.0;
+        cyl.maximum = 2.0;
+        cyl.closed = true;
+
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(0.0, 1.0, 0.0),
+                RayTuple::vector(0.0, -1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.5, 1.0, 0.0),
+                RayTuple::vector(0.0, -1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 1.0, 0.5),
+                RayTuple::vector(0.0, -1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 2.0, 0.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.5, 2.0, 0.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+            (
+                RayTuple::point(0.0, 2.0, 0.5),
+                RayTuple::vector(0.0, 1.0, 0.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let n = cyl.normal_at(test.0);
+
+            assert_eq!(n, test.1);
         }
     }
 }
