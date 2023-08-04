@@ -307,7 +307,7 @@ impl Shape {
             ShapeType::Cylinder => {
                 let epsilon: f64 = 0.00001;
                 let dist = object_point.x.powf(2.0) + object_point.z.powf(2.0);
-                
+
                 if dist < 1.0 && object_point.y >= self.maximum - epsilon {
                     return RayTuple::vector(0.0, 1.0, 0.0);
                 } else if dist < 1.0 && object_point.y <= self.minimum + epsilon {
@@ -315,7 +315,6 @@ impl Shape {
                 } else {
                     return RayTuple::vector(object_point.x, 0.0, object_point.z);
                 }
-
             }
         }
     }
