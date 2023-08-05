@@ -18,6 +18,7 @@ pub enum ShapeType {
     Test,
     Cube,
     Cylinder,
+    Cone,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,6 +126,22 @@ impl Shape {
         Self {
             id: Uuid::new_v4(),
             shape_type: ShapeType::Cylinder,
+            transform: Matrix::identity(),
+            material: Material::new(),
+            saved_ray: Ray::new(
+                RayTuple::point(0.0, 0.0, 0.0),
+                RayTuple::vector(0.0, 0.0, 0.0),
+            ),
+            minimum: f64::NEG_INFINITY,
+            maximum: f64::INFINITY,
+            closed: false,
+        }
+    }
+
+    pub fn cone() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            shape_type: ShapeType::Cone,
             transform: Matrix::identity(),
             material: Material::new(),
             saved_ray: Ray::new(
@@ -262,6 +279,50 @@ impl Shape {
                     intersections
                 }
             }
+            ShapeType::Cone => {
+                let epsilon: f64 = 0.00001;
+                let a = self.saved_ray.direction.x.powf(2.0) - self.saved_ray.direction.y.powf(2.0)
+                    + self.saved_ray.direction.z.powf(2.0);
+                let b = 2.0 * self.saved_ray.origin.x * self.saved_ray.direction.x
+                    - 2.0 * self.saved_ray.origin.y * self.saved_ray.direction.y
+                    + 2.0 * self.saved_ray.origin.z * self.saved_ray.direction.z;
+                let c = self.saved_ray.origin.x.powf(2.0) - self.saved_ray.origin.y.powf(2.0)
+                    + self.saved_ray.origin.z.powf(2.0);
+                println!("a: {} b: {} c: {}", a, b, c);
+
+                if a.abs() <= epsilon {
+                    if b.abs() > epsilon {
+                        let t = -c / (2.0 * b);
+                        println!("t: {}", t);
+                        intersections.push(Intersection::new(t, *self));
+                    }
+                } else {
+                    let disc = b.powf(2.0) - 4.0 * a * c;
+                    println!("disc: {}", disc);
+                    if disc >= 0.0 {
+                        let mut t0 = (-b - disc.sqrt()) / (2.0 * a);
+                        let mut t1 = (-b + disc.sqrt()) / (2.0 * a);
+                        println!("t0: {} t1: {}", t0, t1);
+                        if t0 > t1 {
+                            (t0, t1) = (t1, t0);
+                        }
+
+                        let y0 = self.saved_ray.origin.y + t0 * self.saved_ray.direction.y;
+                        if self.minimum < y0 && y0 < self.maximum {
+                            intersections.push(Intersection::new(t0, *self));
+                        }
+
+                        let y1 = self.saved_ray.origin.y + t1 * self.saved_ray.direction.y;
+                        if self.minimum < y1 && y1 < self.maximum {
+                            intersections.push(Intersection::new(t1, *self));
+                        }
+                    }
+                }
+
+                Self::intersect_caps(&self, self.saved_ray, &mut intersections);
+
+                intersections
+            }
         }
     }
 
@@ -316,6 +377,7 @@ impl Shape {
                     return RayTuple::vector(object_point.x, 0.0, object_point.z);
                 }
             }
+            ShapeType::Cone => RayTuple::vector(object_point.x, 0.0, object_point.z),
         }
     }
 
@@ -1167,5 +1229,53 @@ mod tests {
 
             assert_eq!(n, test.1);
         }
+    }
+
+    #[test]
+    fn intersect_cone() {
+        let mut shape = Shape::cone();
+
+        let test_tuples: Vec<(RayTuple, RayTuple, f64, f64)> = vec![
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(0.0, 0.0, 1.0),
+                5.0,
+                5.0,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(1.0, 1.0, 1.0),
+                8.660254037844386,
+                8.660254037844386,
+            ),
+            (
+                RayTuple::point(1.0, 1.0, -5.0),
+                RayTuple::vector(-0.5, -1.0, 1.0),
+                4.550055679356349,
+                49.449944320643645,
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = shape.intersect(r);
+
+            println!("xs: {:?}", xs);
+            assert_eq!(xs.len(), 2);
+            assert_eq!(xs[0].t, test.2);
+            assert_eq!(xs[1].t, test.3);
+        }
+    }
+
+    #[test]
+    fn intersect_cone_with_parallel_ray() {
+        let mut shape = Shape::cone();
+        let direction = RayTuple::vector(0.0, 1.0, 1.0).normalize();
+        let r = Ray::new(RayTuple::point(0.0, 0.0, -1.0), direction);
+        let xs = shape.intersect(r);
+
+        assert_eq!(xs.len(), 1);
+        assert_eq!(xs[0].t, 0.3535533905932738);
     }
 }
