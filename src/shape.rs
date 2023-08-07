@@ -377,7 +377,22 @@ impl Shape {
                     return RayTuple::vector(object_point.x, 0.0, object_point.z);
                 }
             }
-            ShapeType::Cone => RayTuple::vector(object_point.x, 0.0, object_point.z),
+            ShapeType::Cone => {
+                let epsilon: f64 = 0.00001;
+                let dist = object_point.x.powf(2.0) + object_point.z.powf(2.0);
+
+                if dist < 1.0 && object_point.y >= self.maximum - epsilon {
+                    return RayTuple::vector(0.0, 1.0, 0.0);
+                } else if dist < 1.0 && object_point.y <= self.minimum + epsilon {
+                    return RayTuple::vector(0.0, -1.0, 0.0);
+                } else {
+                    let mut y = (object_point.x.powf(2.0) + object_point.z.powf(2.0)).sqrt();
+                    if object_point.y > 0.0 {
+                        y = -y;
+                    }
+                    return RayTuple::vector(object_point.x, y, object_point.z);
+                }
+            }
         }
     }
 
@@ -403,11 +418,11 @@ impl Shape {
         }
     }
 
-    fn check_cap(ray: Ray, t: f64) -> bool {
+    fn check_cap(ray: Ray, t: f64, radius: f64) -> bool {
         let x = ray.origin.x + t * ray.direction.x;
         let z = ray.origin.z + t * ray.direction.z;
 
-        (x.powf(2.0) + z.powf(2.0)) <= 1.0
+        (x.powf(2.0) + z.powf(2.0)) <= radius
     }
 
     fn intersect_caps(&self, ray: Ray, xs: &mut Vec<Intersection>) {
@@ -417,12 +432,22 @@ impl Shape {
         }
 
         let t = (self.minimum - ray.origin.y) / ray.direction.y;
-        if Self::check_cap(ray, t) {
+        let radius = if self.shape_type == ShapeType::Cylinder {
+            1.0
+        } else {
+            self.minimum.abs()
+        };
+        if Self::check_cap(ray, t, radius) {
             xs.push(Intersection::new(t, *self));
         }
 
         let t = (self.maximum - ray.origin.y) / ray.direction.y;
-        if Self::check_cap(ray, t) {
+        let radius = if self.shape_type == ShapeType::Cylinder {
+            1.0
+        } else {
+            self.maximum.abs()
+        };
+        if Self::check_cap(ray, t, radius) {
             xs.push(Intersection::new(t, *self));
         }
     }
@@ -1277,5 +1302,64 @@ mod tests {
 
         assert_eq!(xs.len(), 1);
         assert_eq!(xs[0].t, 0.3535533905932738);
+    }
+
+    #[test]
+    fn intersecting_cone_end_caps() {
+        let mut shape = Shape::cone();
+        shape.minimum = -0.5;
+        shape.maximum = 0.5;
+        shape.closed = true;
+
+        let test_tuples: Vec<(RayTuple, RayTuple, usize)> = vec![
+            (
+                RayTuple::point(0.0, 0.0, -5.0),
+                RayTuple::vector(0.0, 1.0, 0.0),
+                0,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -0.25),
+                RayTuple::vector(0.0, 1.0, 1.0),
+                2,
+            ),
+            (
+                RayTuple::point(0.0, 0.0, -0.25),
+                RayTuple::vector(0.0, 1.0, 0.0),
+                4,
+            ),
+        ];
+
+        for test in test_tuples {
+            let direction = test.1.normalize();
+            let r = Ray::new(test.0, direction);
+            let xs = shape.intersect(r);
+
+            assert_eq!(xs.len(), test.2);
+        }
+    }
+
+    #[test]
+    fn normal_vector_on_cone() {
+        let shape = Shape::cone();
+        let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
+            (
+                RayTuple::point(0.0,0.0,0.0),
+                RayTuple::vector(0.0, 0.0, 0.0),
+            ),
+            (
+                RayTuple::point(1.0,1.0,1.0),
+                RayTuple::vector(1.0, -2.0_f64.sqrt(), 1.0),
+            ),
+            (
+                RayTuple::point(-1.0,-1.0,0.0),
+                RayTuple::vector(-1.0, 1.0, 0.0),
+            ),
+        ];
+
+        for test in test_tuples {
+            let n = shape.normal_at(test.0);
+
+            assert_eq!(n, test.1);
+        }
     }
 }
