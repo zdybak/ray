@@ -1,7 +1,5 @@
 use std::time::Instant;
 
-use crate::world::World;
-
 mod camera;
 mod canvas;
 mod color;
@@ -19,7 +17,7 @@ mod world;
 fn main() {
     let start_time = Instant::now();
 
-    World::chapter_twelve_cube();
+    shape::chapter_thirteen_cylinders();
 
     let elapsed_time = start_time.elapsed();
     println!("Program completed in {:.2?}", elapsed_time);

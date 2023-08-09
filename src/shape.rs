@@ -288,21 +288,18 @@ impl Shape {
                     + 2.0 * self.saved_ray.origin.z * self.saved_ray.direction.z;
                 let c = self.saved_ray.origin.x.powf(2.0) - self.saved_ray.origin.y.powf(2.0)
                     + self.saved_ray.origin.z.powf(2.0);
-                println!("a: {} b: {} c: {}", a, b, c);
 
                 if a.abs() <= epsilon {
                     if b.abs() > epsilon {
                         let t = -c / (2.0 * b);
-                        println!("t: {}", t);
                         intersections.push(Intersection::new(t, *self));
                     }
                 } else {
                     let disc = b.powf(2.0) - 4.0 * a * c;
-                    println!("disc: {}", disc);
                     if disc >= 0.0 {
                         let mut t0 = (-b - disc.sqrt()) / (2.0 * a);
                         let mut t1 = (-b + disc.sqrt()) / (2.0 * a);
-                        println!("t0: {} t1: {}", t0, t1);
+
                         if t0 > t1 {
                             (t0, t1) = (t1, t0);
                         }
@@ -511,6 +508,68 @@ pub fn chapter_nine_plane() {
 
     let canvas = c.render(w);
     canvas.save_ppm("chapter9.ppm");
+}
+
+pub fn chapter_thirteen_cylinders() {
+    let lightgray = Color::new(0.5, 0.6, 0.6);
+    let darkgray = Color::new(0.4, 0.4, 0.3);
+
+    let lightgreen = Color::new(0.3, 0.9, 0.3);
+    let darkgreen = Color::new(0.1, 0.4, 0.1);
+
+    let mut w = World::new();
+
+    let mut floor = Shape::plane();
+    floor.material.pattern = Some(Pattern::stripe_pattern(lightgreen, darkgreen));
+
+    let mut wall = Shape::cube();
+    let mut wall_pattern = Pattern::checkers_pattern(lightgray, darkgray);
+    wall_pattern.transform = Matrix::scaling(0.1, 0.1, 1.0);
+    wall.material.pattern = Some(wall_pattern);
+    wall.transform = Matrix::translation(0.0, 0.0, -0.5) * Matrix::scaling(5.0, 3.0, 1.0);
+
+    let mut left_tower = Shape::cylinder();
+    left_tower.material.pattern = Some(wall_pattern);
+    left_tower.maximum = 4.0;
+    left_tower.minimum = 0.0;
+    left_tower.transform = Matrix::translation(-6.0, 0.0, -1.0) * Matrix::scaling(1.5, 1.0, 1.5);
+
+    let mut right_tower = Shape::cylinder();
+    right_tower.material.pattern = Some(wall_pattern);
+    right_tower.maximum = 4.0;
+    right_tower.minimum = 0.0;
+    right_tower.transform = Matrix::translation(6.0, 0.0, -1.0) * Matrix::scaling(1.5, 1.0, 1.5);
+
+    let mut left_roof = Shape::cone();
+    left_roof.maximum = 0.0;
+    left_roof.minimum = -1.0;
+    left_roof.material.color = Color::new(0.85, 0.25, 0.25);
+    left_roof.material.specular = 25.0;
+    left_roof.transform = Matrix::translation(-6.0, 6.0, -1.0) * Matrix::scaling(2.0, 2.0, 2.0);
+
+    let mut right_roof = Shape::cone();
+    right_roof.maximum = 0.0;
+    right_roof.minimum = -1.0;
+    right_roof.material.color = Color::new(0.85, 0.25, 0.25);
+    right_roof.material.specular = 25.0;
+    right_roof.transform = Matrix::translation(6.0, 6.0, -1.0) * Matrix::scaling(2.0, 2.0, 2.0);
+
+    w.objects.push(floor);
+    w.objects.push(wall);
+    w.objects.push(left_tower);
+    w.objects.push(right_tower);
+    w.objects.push(left_roof);
+    w.objects.push(right_roof);
+
+    let mut c = Camera::new(2560, 1440, FRAC_PI_3);
+    c.transform = Matrix::view_transform(
+        RayTuple::point(0.0, 1.0, -15.0),
+        RayTuple::point(0.0, 2.5, 0.0),
+        RayTuple::vector(0.0, 1.0, 0.0),
+    );
+
+    let canvas = c.render(w);
+    canvas.save_ppm("chapter13.ppm");
 }
 
 #[cfg(test)]
@@ -1343,15 +1402,15 @@ mod tests {
         let shape = Shape::cone();
         let test_tuples: Vec<(RayTuple, RayTuple)> = vec![
             (
-                RayTuple::point(0.0,0.0,0.0),
+                RayTuple::point(0.0, 0.0, 0.0),
                 RayTuple::vector(0.0, 0.0, 0.0),
             ),
             (
-                RayTuple::point(1.0,1.0,1.0),
+                RayTuple::point(1.0, 1.0, 1.0),
                 RayTuple::vector(1.0, -2.0_f64.sqrt(), 1.0),
             ),
             (
-                RayTuple::point(-1.0,-1.0,0.0),
+                RayTuple::point(-1.0, -1.0, 0.0),
                 RayTuple::vector(-1.0, 1.0, 0.0),
             ),
         ];
